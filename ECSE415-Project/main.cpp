@@ -1,5 +1,6 @@
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include <string>
 #include <sstream>
 
@@ -7,6 +8,9 @@
 
 #include "lbp.h"
 #include "tinydir.h"
+
+// allow numeric limits to work
+#undef max
 
 const char QMUL_DIR[] = "QMUL/";
 
@@ -35,18 +39,21 @@ void main()
 		tinydir_readfile(&dir, &file);
 		if (file.is_dir)
 		{
-			people.push_back(file.name);
+			if (file.name[0] != '.') {
+				people.push_back(file.name);
+			}
 		}
 		tinydir_next(&dir);
 	}
 
 	tinydir_close(&dir);
 
-	// start at 2 to ignore "." and ".."
-	for (int i=2; i < people.size(); i++) {
+	std::vector<cv::Mat> histograms, tests;
+
+	/* train */
+	for (int i=0; i < people.size(); i++) {
 		
 		std::string name = get_image(people[i], 120, 90);
-		std::cout << "opening: " << name << std::endl;
 		// open image
 		cv::Mat im = cv::imread(name);
 		
@@ -54,15 +61,45 @@ void main()
 		cv::cvtColor(im, im, CV_RGB2GRAY);
 		
 		//compute spatial pyramid histogram for number of level
-		cv::Mat spatialHist = getSpatialPyramidHistogram(im, 1);
+		histograms.push_back(getSpatialPyramidHistogram(im, 1));
 	}
 
-	cv::waitKey();
-	std::system("pause");
+	/* testing */
+	int test_person = 8;
 
-	//open all files with pose _90_90
+	std::string name = get_image(people[test_person], 110, 90);
+	std::cout << "testing: " << name << std::endl;
+	// open image
+	cv::Mat im = cv::imread(name);
+		
+	//convert to greyScale
+	cv::cvtColor(im, im, CV_RGB2GRAY);
+		
+	//compute spatial pyramid histogram for number of level
+	tests.push_back(getSpatialPyramidHistogram(im, 1));
 
-	//wait to exit
 	
+	/* person 1 */
+	double best = std::numeric_limits<double>::max();
+	int person = -1;
+	for (int i=0; i<histograms.size(); i++) {
+		double diff = cv::compareHist(histograms[i], tests[0], CV_COMP_CHISQR);
+
+		std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
+
+		if (diff < best) {
+			best = diff;
+			person = i;
+		}
+
+	}
+
+	std::cout << "The Person was most likely: " << people[person] << std::endl;
+	if (person != test_person) {
+		std::cout << "This was wrong" << std::endl;
+	}
+
+	std::system("pause");	
+
 
 }

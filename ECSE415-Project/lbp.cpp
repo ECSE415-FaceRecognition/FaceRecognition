@@ -78,8 +78,8 @@ Mat computeLBP(const Mat input){
 	
 	//show image
 	LBPimage.convertTo(LBPimage, CV_8U);
-	imshow("LBP image", LBPimage);
-	waitKey(0);
+	//imshow("LBP image", LBPimage);
+	//waitKey(0);
 
 	//compute histogram
 	Mat histogram;
