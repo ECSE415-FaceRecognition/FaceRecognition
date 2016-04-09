@@ -8,66 +8,16 @@
 
 #include "lbp.h"
 #include "tinydir.h"
+#include "util.h"
 
 // allow numeric limits to work
 #undef max
 
-const char QMUL_DIR[] = "QMUL/";
-const char POSE_DIR[] = "HeadPoseImageDatabase/";
-
-std::string tilts[] = {"-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90"};
-std::string pans[] = {"-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90"};
-std::string get_image_pose(int id, int serie, int number, std::string tilt, std::string pan) {
-	std::stringstream s, id_ss, number_ss;
-	
-	id_ss << std::setfill('0') << std::setw(2) << id;
-	number_ss << std::setfill('0') << std::setw(2) << number;
-
-	s << POSE_DIR << "Person" << id_ss.str() << "/" << "person" << id_ss.str() << serie << number_ss.str() << tilt << pan << ".jpg";
-	return s.str();
-}
-
-std::string get_image_qmul(std::string person, int tilt, int angle) {
-	std::stringstream s, tilt_ss, angle_ss;
-	tilt_ss << std::setfill('0') << std::setw(3) << tilt;
-	angle_ss << std::setfill('0') << std::setw(3) << angle;
-
-	s << QMUL_DIR << person << "/" << person.substr(0, person.size() - 4) << "_"  << tilt_ss.str() << "_" << angle_ss.str() << ".ras";
-	return s.str();
-}
-
-std::vector<std::string> open_all_poses() {
-	std::vector<std::string> names;
-	for (int id=0; id <= 15; id++) {
-		for (int serie=1; serie <= 2; serie++) {
-			for (int number=0; number <= 92; number++) {
-				for (int til=0; til <= 9; til++) {
-					for (int pan=0; pan <= 9; pan++) {
-						std::string pose_name = get_image_pose(1, 1, 00, "-90", "+0");
-						names.push_back(pose_name);
-					}
-				}
-			}
-		}
-	}
-	return names;
-}
+void do_lbp_face_recognition(std::vector<std::string> const& people);
 
 void main()
 {
 	//load image and set directory - just for testing
-
-	std::vector<std::string> poses = open_all_poses();
-
-	for (int i=0; i < 100; i++) {
-		int index = rand() % poses.size();
-		cv::Mat im = cv::imread(poses[index]);
-		if (im.empty()) {
-			std::cout << "error at: " << poses[index] << std::endl;
-		}
-	}
-	//imshow(pose_name , img);
-	cv::waitKey();
 	tinydir_dir dir;
 	tinydir_open(&dir, QMUL_DIR);
 
@@ -89,58 +39,23 @@ void main()
 
 	tinydir_close(&dir);
 
-	std::vector<cv::Mat> histograms, tests;
+	do_lbp_face_recognition(people);
 
-	/* train */
-	for (int i=0; i < people.size(); i++) {
-		
-		std::string name = get_image_qmul(people[i], 120, 90);
-		// open image
-		cv::Mat im = cv::imread(name);
-		
-		//convert to greyScale
-		cv::cvtColor(im, im, CV_RGB2GRAY);
-		
-		//compute spatial pyramid histogram for number of level
-		histograms.push_back(getSpatialPyramidHistogram(im, 1));
-	}
+}
 
-	/* testing */
-	int test_person = 8;
+void do_lbp_face_recognition(std::vector<std::string> const& people) {
+	std::vector<cv::Mat> histograms;
+	const std::string PERSON = "AdamBGrey";
+	int levels = 1;
 
-	std::string name = get_image_qmul(people[test_person], 110, 90);
-	std::cout << "testing: " << name << std::endl;
-	// open image
-	cv::Mat im = cv::imread(name);
-		
-	//convert to greyScale
-	cv::cvtColor(im, im, CV_RGB2GRAY);
-		
-	//compute spatial pyramid histogram for number of level
-	tests.push_back(getSpatialPyramidHistogram(im, 1));
-
-	
-	/* person 1 */
-	double best = std::numeric_limits<double>::max();
-	int person = -1;
-	for (int i=0; i<histograms.size(); i++) {
-		double diff = cv::compareHist(histograms[i], tests[0], CV_COMP_CHISQR);
-
-		std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
-
-		if (diff < best) {
-			best = diff;
-			person = i;
-		}
-
-	}
-
-	std::cout << "The Person was most likely: " << people[person] << std::endl;
-	if (person != test_person) {
-		std::cout << "This was wrong" << std::endl;
-	}
-
-	std::system("pause");	
+	lbp_train(people, histograms, levels);
+	std::string test_person = get_image_qmul(PERSON, 60, 80);
 
 
+
+	lbp_test(test_person, people, histograms, levels);
+	std::cout << "Actual person was: " << PERSON << std::endl;
+
+
+	system("pause");
 }
