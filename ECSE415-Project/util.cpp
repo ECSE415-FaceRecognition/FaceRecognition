@@ -6,40 +6,55 @@
 
 #include "util.h"
 
-std::string tilts[] = {"-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90"};
-std::string pans[] = {"-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90"};
-std::string get_image_pose(int id, int serie, int number, std::string tilt, std::string pan) {
-	std::stringstream s, id_ss, number_ss;
+using namespace std;
+
+string tilts[] = {"-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90"};
+string pans[] = {"-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90"};
+
+string get_image_hpid(int id, int serie, int number, string tilt, string pan) {
+	stringstream s, id_ss, number_ss;
 	
-	id_ss << std::setfill('0') << std::setw(2) << id;
-	number_ss << std::setfill('0') << std::setw(2) << number;
+	id_ss << setfill('0') << setw(2) << id;
+	number_ss << setfill('0') << setw(2) << number;
 
 	s << POSE_DIR << "Person" << id_ss.str() << "/" << "person" << id_ss.str() << serie << number_ss.str() << tilt << pan << ".jpg";
 	return s.str();
 }
 
-std::string get_image_qmul(std::string person, int tilt, int angle) {
-	std::stringstream s, tilt_ss, angle_ss;
-	tilt_ss << std::setfill('0') << std::setw(3) << tilt;
-	angle_ss << std::setfill('0') << std::setw(3) << angle;
+string get_image_qmul(string person, int tilt, int pose) {
+	stringstream s, tilt_ss, pose_ss;
+	tilt_ss << setfill('0') << setw(3) << tilt;
+	pose_ss << setfill('0') << setw(3) << pose;
 
-	s << QMUL_DIR << person << "/" << person.substr(0, person.size() - 4) << "_"  << tilt_ss.str() << "_" << angle_ss.str() << ".ras";
+	s << QMUL_DIR << person << "/" << person.substr(0, person.size() - 4) << "_"  << tilt_ss.str() << "_" << pose_ss.str() << ".ras";
 	return s.str();
 }
 
-std::vector<std::string> open_all_poses() {
-	std::vector<std::string> names;
-	for (int id=0; id <= 15; id++) {
-		for (int serie=1; serie <= 2; serie++) {
-			for (int number=0; number <= 92; number++) {
-				for (int til=0; til <= 9; til++) {
-					for (int pan=0; pan <= 9; pan++) {
-						std::string pose_name = get_image_pose(1, 1, 00, "-90", "+0");
-						names.push_back(pose_name);
-					}
-				}
+vector<vector<string>> open_all_qmul_by_person(vector<string> people) {
+	vector<vector<string>> names;
+	for (int person=0; person<people.size(); person++) {
+		vector<string> tmp;
+		for (int tilt=60; tilt<=120; tilt += 10) {
+			for (int pose=0; pose <= 180; pose += 10) {
+				tmp.push_back(get_image_qmul(people[person], tilt, pose));	
 			}
 		}
+		names.push_back(tmp);
 	}
 	return names;
+}
+
+vector<vector<string>> open_all_qmul_by_pose(vector<string> people) {
+	vector<vector<string>> poses;
+	for (int pose=0; pose <= 180; pose += 10) {
+		std::cout << pose << std::endl;
+		vector<string> tmp;
+		for (int tilt=60; tilt<=120; tilt += 10) {
+			for (int person=0; person<people.size(); person++) {
+				tmp.push_back(get_image_qmul(people[person], tilt, pose));	
+			}
+		}
+		poses.push_back(tmp);
+	}
+	return poses;
 }
