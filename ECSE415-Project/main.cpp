@@ -14,7 +14,7 @@
 #undef max
 
 void do_lbp_face_recognition(std::vector<std::string> const& people);
-void test_util(std::vector<std::string> const& people);
+void qmul_all_images_of_person(std::string person);
 
 void main()
 {
@@ -40,7 +40,7 @@ void main()
 
 	tinydir_close(&dir);
 
-	test_util(people);
+	qmul_all_images_of_person(people[0]);
 
 	//do_lbp_face_recognition(people);
 
@@ -63,8 +63,11 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 	system("pause");
 }
 
-void test_util(std::vector<std::string> const& people) {
-	auto open_test = open_all_qmul_by_pose(people);
+void qmul_all_images_of_person(std::string person) {
+	std::vector<std::string> tmp;
+	tmp.push_back(person);
+
+	auto open_test = open_all_qmul_by_person(tmp);
 
 	const int index = 0;
 	for (int i=0; i < open_test[index].size(); i++) {
