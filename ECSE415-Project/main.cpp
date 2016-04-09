@@ -13,8 +13,21 @@
 #undef max
 
 const char QMUL_DIR[] = "QMUL/";
+const char POSE_DIR[] = "HeadPoseImageDatabase/";
 
-std::string get_image(std::string person, int tilt, int angle) {
+std::string tilts[] = {"-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90"};
+std::string pans[] = {"-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90"};
+std::string get_image_pose(int id, int serie, int number, std::string tilt, std::string pan) {
+	std::stringstream s, id_ss, number_ss;
+	
+	id_ss << std::setfill('0') << std::setw(2) << id;
+	number_ss << std::setfill('0') << std::setw(2) << number;
+
+	s << POSE_DIR << "Person" << id_ss.str() << "/" << "person" << id_ss.str() << serie << number_ss.str() << tilt << pan << ".jpg";
+	return s.str();
+}
+
+std::string get_image_qmul(std::string person, int tilt, int angle) {
 	std::stringstream s, tilt_ss, angle_ss;
 	tilt_ss << std::setfill('0') << std::setw(3) << tilt;
 	angle_ss << std::setfill('0') << std::setw(3) << angle;
@@ -23,10 +36,38 @@ std::string get_image(std::string person, int tilt, int angle) {
 	return s.str();
 }
 
+std::vector<std::string> open_all_poses() {
+	std::vector<std::string> names;
+	for (int id=0; id <= 15; id++) {
+		for (int serie=1; serie <= 2; serie++) {
+			for (int number=0; number <= 92; number++) {
+				for (int til=0; til <= 9; til++) {
+					for (int pan=0; pan <= 9; pan++) {
+						std::string pose_name = get_image_pose(1, 1, 00, "-90", "+0");
+						names.push_back(pose_name);
+					}
+				}
+			}
+		}
+	}
+	return names;
+}
+
 void main()
 {
 	//load image and set directory - just for testing
 
+	std::vector<std::string> poses = open_all_poses();
+
+	for (int i=0; i < 100; i++) {
+		int index = rand() % poses.size();
+		cv::Mat im = cv::imread(poses[index]);
+		if (im.empty()) {
+			std::cout << "error at: " << poses[index] << std::endl;
+		}
+	}
+	//imshow(pose_name , img);
+	cv::waitKey();
 	tinydir_dir dir;
 	tinydir_open(&dir, QMUL_DIR);
 
@@ -53,7 +94,7 @@ void main()
 	/* train */
 	for (int i=0; i < people.size(); i++) {
 		
-		std::string name = get_image(people[i], 120, 90);
+		std::string name = get_image_qmul(people[i], 120, 90);
 		// open image
 		cv::Mat im = cv::imread(name);
 		
@@ -67,7 +108,7 @@ void main()
 	/* testing */
 	int test_person = 8;
 
-	std::string name = get_image(people[test_person], 110, 90);
+	std::string name = get_image_qmul(people[test_person], 110, 90);
 	std::cout << "testing: " << name << std::endl;
 	// open image
 	cv::Mat im = cv::imread(name);
