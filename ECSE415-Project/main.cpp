@@ -1,3 +1,4 @@
+#include <algorithm>  
 #include <iostream>
 #include <iomanip>
 #include <limits>
@@ -14,6 +15,7 @@
 #undef max
 
 void do_lbp_face_recognition(std::vector<std::string> const& people);
+void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string>> &folds);
 void qmul_all_images_of_person(std::string person);
 
 void main()
@@ -40,24 +42,47 @@ void main()
 
 	tinydir_close(&dir);
 
-	qmul_all_images_of_person(people[0]);
-
-	//do_lbp_face_recognition(people);
+	do_lbp_face_recognition(people);
 
 }
 
 void do_lbp_face_recognition(std::vector<std::string> const& people) {
-	std::vector<cv::Mat> histograms;
+	std::vector<std::vector<cv::Mat>> histograms;
 	const std::string PERSON = "AdamBGrey";
 	int levels = 1;
 
-	lbp_train(people, histograms, levels);
-	std::string test_person = get_image_qmul(PERSON, 60, 80);
+	std::vector<std::vector<cv::string>> image_names =  open_all_qmul_by_person(people);
+	std::vector<std::vector<cv::string>> folds;
+
+	/* split into 7 training sets */
+	folds.resize(7);
+	for (int i=0; i < image_names.size(); i++) {
+		srand(time(0));
+		seven_fold_cv(image_names[i], folds);
+	}
+
+	std::vector<std::vector<cv::string>> training_images;
+	training_images.resize(people.size());
+	for (int fold=0; fold < 1; fold++) {
+		int i=0;
+		for (int person=0; person<people.size(); person++) {
+			while ( i < folds[fold].size() && (folds[fold][i].substr(5, people[person].size()) == people[person].substr(0, people[person].size()))) {
+				training_images[person].push_back(folds[fold][i]);
+				i++;
+			}
+		}
+	}
+
+	lbp_train(training_images, histograms, levels);
+
+	int x = rand() % folds.size();
+	int y = rand() % folds[x].size();
+	std::string test_person = folds[x][y];
 
 
 
 	lbp_test(test_person, people, histograms, levels);
-	std::cout << "Actual person was: " << PERSON << std::endl;
+	std::cout << "Actual person was: " << test_person << std::endl;
 
 
 	system("pause");
@@ -77,4 +102,13 @@ void qmul_all_images_of_person(std::string person) {
 
 	cv::waitKey();
 
+}
+
+void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string>> &folds) {
+	std::random_shuffle(people.begin(), people.end());
+	int i = people.size();
+	while(i > 0) {
+		i--;
+		folds[i%7].push_back(people[i]);
+	}
 }

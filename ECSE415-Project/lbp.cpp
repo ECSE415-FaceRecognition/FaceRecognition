@@ -17,23 +17,27 @@ cv::Mat computeLBP(const cv::Mat input);
 cv::Mat computeImageLBP(const cv::Mat input, int patchNumber);
 cv::Mat getSpatialPyramidHistogram(const cv::Mat input, int levels);
 
-void lbp_train(vector<string> const& people, std::vector<cv::Mat> &histograms, int levels) {
+void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<cv::Mat>> &histograms, int levels) {
 	/* train */
 	for (int i=0; i < people.size(); i++) {
+		std::vector<cv::Mat> individual_histogram;
+		for (int j=0; j < people[i].size(); j++) {
+			std::string name = people[i][j];
+			// open image
+			cv::Mat im = cv::imread(name);
+
+			//convert to greyScale
+			cv::cvtColor(im, im, CV_RGB2GRAY);
+
+			//compute spatial pyramid histogram for number of level
+			individual_histogram.push_back(getSpatialPyramidHistogram(im, levels));
+		}
 		
-		std::string name = get_image_qmul(people[i], 60, 90);
-		// open image
-		cv::Mat im = cv::imread(name);
-		
-		//convert to greyScale
-		cv::cvtColor(im, im, CV_RGB2GRAY);
-		
-		//compute spatial pyramid histogram for number of level
-		histograms.push_back(getSpatialPyramidHistogram(im, levels));
+		histograms.push_back(individual_histogram);
 	}
 }
 
-void lbp_test(string const& test_file, vector<string> const& people, std::vector<cv::Mat> &histograms,  int levels) {
+void lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<cv::Mat>> &histograms,  int levels) {
 	// open image
 	cv::Mat im = cv::imread(test_file);
 		
@@ -48,15 +52,15 @@ void lbp_test(string const& test_file, vector<string> const& people, std::vector
 	double best = std::numeric_limits<double>::max();
 	int person = -1;
 	for (int i=0; i<histograms.size(); i++) {
-		double diff = cv::compareHist(histograms[i], whom, CV_COMP_CHISQR);
+		for (int j=0; j<histograms[i].size(); j++) {
+			double diff = cv::compareHist(histograms[i][j], whom, CV_COMP_CHISQR);
 
-		std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
-
-		if (diff < best) {
-			best = diff;
-			person = i;
+			if (diff < best) {
+				std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
+				best = diff;
+				person = i;
+			}
 		}
-
 	}
 
 	std::cout << "LBP Face Detection guesses: " << people[person] << std::endl;
