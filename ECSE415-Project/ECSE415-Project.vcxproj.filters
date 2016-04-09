@@ -26,5 +26,8 @@
     <ClInclude Include="lbp.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="tinydir.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
