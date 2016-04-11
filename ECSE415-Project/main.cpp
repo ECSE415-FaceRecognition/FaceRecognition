@@ -41,6 +41,10 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 	std::vector<std::vector<cv::string>> image_names = open_all_qmul_by_person(people_tmp);
 	std::vector<std::vector<LBPData>> folds;
+	//image_names.resize(10);
+	for (auto &image : image_names) {
+		image.resize(10);
+	}
 
 	std::ofstream lbp_face_log;
 	lbp_face_log.open("lbp_face_log.txt");
@@ -59,7 +63,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	std::vector<LBPData> testing_images;
 	
 	for (int level = 1; level <= MAX_LEVELS; level++) {
-		double average_rate;
+		double average_rate = 0;
 		/* create a set of training images from 6 of the 7 folds */
 		int which_fold;
 		for (int x = 0; x < NUM_FOLDS; x++) {
@@ -80,12 +84,13 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 			/* run recognition for testing subsample */
 			for (int i=0; i < testing_images.size(); i++) {
-				std::string test_person = testing_images[i].name;
+				std::vector<cv::Mat> test_person = testing_images[i].hist;
+				std::string test_name = testing_images[i].name;
 				std::string guessed = lbp_test(test_person, people_tmp, training_images, level);
 			
 				/* determine if lbp guessed properly. test_person is a file name, so we simply
 					search in the file name for the guessed person */
-				if (test_person.find(guessed) != std::string::npos) {
+				if (test_name.find(guessed) != std::string::npos) {
 					guessed_correct++;
 					//std::cout << "guessed " << guessed_correct << "correct" << std::endl;
 				}

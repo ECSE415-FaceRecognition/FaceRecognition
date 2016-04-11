@@ -48,16 +48,7 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 	}
 }
 
-string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<LBPData>> &histograms, int levels) {
-	// open image
-	cv::Mat im = cv::imread(test_file);
-		
-	//convert to greyScale
-	cv::cvtColor(im, im, CV_RGB2GRAY);
-		
-	//compute spatial pyramid histogram for number of level
-	std::vector<Mat> person_hist = getSpatialPyramidHistogram(im, levels);
-	
+string lbp_test(vector<Mat> test_person, vector<string> const& people, vector<vector<LBPData>> &histograms, int levels) {	
 	
 	/* person 1 */
 	double best = std::numeric_limits<double>::max();
@@ -70,7 +61,7 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 			vector<double>levelDistances(levels);
 			//compare all histograms on a per level basis
 			for (int lvl = 0; lvl < levels; lvl++){
-				levelDistances[lvl] = compareHist(person_hist[lvl], histograms[i][j].hist[lvl], CV_COMP_CHISQR);
+				levelDistances[lvl] = compareHist(test_person[lvl], histograms[i][j].hist[lvl], CV_COMP_CHISQR);
 			}
 			//calculate weighted distance
 			//compute sum
