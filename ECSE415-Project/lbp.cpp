@@ -44,6 +44,7 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 		}
 		
 		histograms.push_back(each_person);
+		std::cout << "Testing Person: " << i << std::endl;
 	}
 }
 
@@ -57,21 +58,28 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 	//compute spatial pyramid histogram for number of level
 	std::vector<Mat> person_hist = getSpatialPyramidHistogram(im, levels);
 	
-	cv::Mat whom;
-	for (auto histogram : person_hist) {
-		whom.push_back(histogram);
-	}
 	
 	/* person 1 */
 	double best = std::numeric_limits<double>::max();
 	string guess;
 	for (unsigned int i = 0; i<histograms.size(); i++) {
 		for (unsigned int j = 0; j<histograms[i].size(); j++) {
-			cv::Mat concat;
-			for (auto histogram : histograms[i][j].hist) {
-				concat.push_back(histogram);
+			//double diff = cv::compareHist(person_hist, histograms[i][j].hist, CV_COMP_CHISQR);
+
+			//find distance
+			vector<double>levelDistances(levels);
+			//compare all histograms on a per level basis
+			for (int lvl = 0; lvl < levels; lvl++){
+				levelDistances[lvl] = compareHist(person_hist[lvl], histograms[i][j].hist[lvl], CV_COMP_CHISQR);
 			}
-			double diff = cv::compareHist(concat, whom, CV_COMP_CHISQR);
+			//calculate weighted distance
+			//compute sum
+			double sum = 0;
+			for (int s = 1; s < levels; s++){
+				sum = sum + levelDistances[s] / (pow(2, (levels - 1 - s + 1)));
+			}
+			//compute final distance
+			double diff = levelDistances[0] / (pow(2, (levels - 1)));
 
 			if (diff < best) {
 				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
