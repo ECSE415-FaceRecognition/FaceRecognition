@@ -67,7 +67,7 @@ void main()
 		}
 	}
 	//imshow(pose_name , img);
-	cv::waitKey();
+	//cv::waitKey();
 	tinydir_dir dir;
 	tinydir_open(&dir, QMUL_DIR);
 
@@ -104,7 +104,7 @@ void main()
 		faces.push_back(im);
 		faces.push_back(im2);
 
-		generate_ef(faces);
+		train(faces);
 		faces.clear();
 		//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 	}

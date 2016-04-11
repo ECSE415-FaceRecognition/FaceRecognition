@@ -1,36 +1,13 @@
 #include "eigenfaces.h"
 
 Mat get_mean_image(vector<Mat> faces);
+void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val);
+Mat generate_flat_diff(vector<Mat> faces);
+Mat train(vector<Mat> faces);
 
-void generate_ef(vector<Mat> faces) {
+void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 
-	int size_in = faces.size();
-	int img_h, img_w;
-	img_h = faces[0].size().height;
-	img_w = faces[0].size().width;
-	Mat D = Mat::zeros(img_h*img_w, size_in, CV_64FC1);
-	Mat mean_face = get_mean_image(faces);
-	vector<Mat> diff_faces;
-	for (int i = 0; i < faces.size(); i++) {
-		Mat face;
-		faces[i].convertTo(face, CV_64FC1);
-		diff_faces.push_back(face - mean_face);
-	}
-
-	int size = diff_faces.size();
-
-	cout << "size in is " << size << endl;
-	for (int i = 0; i < size_in; i++) {
-		for (int j = 0; j < img_h; j++) {
-			for (int k = 0; k < img_w; k++) {
-				D.at<double>(j*img_w + k,i) = diff_faces[0].at<double>(j, k);
-			}
-		}
-	}
-
-	cout << "size of mean face " << mean_face.size() << endl;
-	cout << diff_faces[0].at<double>(4,6) << endl;
-	cout << D.at<double>(4 * img_w + 6, 0) << endl;
+	//cout << D << endl;
 	cout << "size of D " << D.size() << endl;
 	cout << "D columns = " << D.cols << endl;
 	cout << "D rows = " << D.rows << endl;
@@ -52,8 +29,10 @@ void generate_ef(vector<Mat> faces) {
 
 	//covar.convertTo(covar, CV_32FC1);
 
-	Mat eigen_vec;
-	Mat eigen_val;
+	//Mat eigen_vec;
+	//Mat eigen_val;
+
+	
 
 	if (eigen(DD_t, true, eigen_vec, eigen_val)) {
 		cout << eigen_vec.size() << endl;
@@ -63,14 +42,59 @@ void generate_ef(vector<Mat> faces) {
 		cout << "error in eigen function" << endl;
 		_exit(0);
 	}
-	vector<double> coefs;
-	for (int i = 0; i < diff_faces.size(); i++) {
-		coefs.push_back(D.dot(diff_faces[i]));
-	}
+	
+	//Mat source = Mat::eye(eigen_vec.size(), CV_64FC1);
+	Mat dst;
 
+	cv::sortIdx(eigen_vec, dst, CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
+	cout << dst.size() << endl;
+	cv::sort(eigen_vec, eigen_vec, CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
 	//return DD_t;
 }
 
+Mat generate_flat_diff(vector<Mat> faces) {
+	int size_in = faces.size();
+	int img_h, img_w;
+	img_h = faces[0].size().height;
+	img_w = faces[0].size().width;
+	Mat D = Mat::zeros(img_h*img_w, size_in, CV_64FC1);
+	Mat mean_face = get_mean_image(faces);
+	vector<Mat> diff_faces;
+	for (int i = 0; i < faces.size(); i++) {
+		Mat face;
+		faces[i].convertTo(face, CV_64FC1);
+		diff_faces.push_back(face - mean_face);
+	}
+
+	int size = diff_faces.size();
+
+	cout << "size in is " << size << endl;
+	for (int i = 0; i < size_in; i++) {
+		for (int j = 0; j < img_h; j++) {
+			for (int k = 0; k < img_w; k++) {
+				D.at<double>(j*img_w + k, i) = diff_faces[0].at<double>(j, k);
+			}
+		}
+	}
+	return D;
+}
+
+Mat train(vector<Mat> faces) {
+	//cols are resulting projection
+	Mat eigen_val, eigen_faces;
+	Mat D = generate_flat_diff(faces);
+	generate_ef(D, eigen_faces, eigen_val);
+
+	Mat coefs = Mat::zeros(faces.size(),faces.size(), CV_64F);
+
+
+
+
+	/*for (int i = 0; i < faces.size(); i++) {
+
+	}*/
+	return coefs;
+}
 
 Mat get_mean_image(vector<Mat> faces) {
 	Mat conv;
