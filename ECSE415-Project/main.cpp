@@ -14,48 +14,31 @@
 // allow numeric limits to work
 #undef max
 
-const int NUM_FOLDS = 7;
-const int MAX_LEVELS = 6;
+const int NUM_FOLDS = 2;
+const int MAX_LEVELS = 1;
 
 void do_lbp_face_recognition(std::vector<std::string> const& people);
 void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string>> &folds);
 void qmul_all_images_of_person(std::string person);
 
-void test_main()
+void main()
 {
 	//load image and set directory - just for testing
 	tinydir_dir dir;
 	tinydir_open(&dir, QMUL_DIR);
 
-	std::vector<std::string> people;
-
-	// populate peopls with everyone from the QMUL dataset
-	while (dir.has_next)
-	{
-		tinydir_file file;
-		tinydir_readfile(&dir, &file);
-		if (file.is_dir)
-		{
-			if (file.name[0] != '.') {
-				people.push_back(file.name);
-			}
-		}
-		tinydir_next(&dir);
-	}
-
-	tinydir_close(&dir);
+	std::vector<std::string> people = getQmulNames();
 
 	do_lbp_face_recognition(people);
 
 }
 
 void do_lbp_face_recognition(std::vector<std::string> const& people) {
-	std::vector<std::vector<cv::Mat>> histograms;
+	std::vector<std::vector<std::vector<cv::Mat>>> histograms;
 
 	std::vector<std::vector<cv::string>> image_names =  open_all_qmul_by_person(people);
 	std::vector<std::vector<cv::string>> folds;
 
-	for (int levels=1; levels < MAX_LEVELS; levels++) { 
 		/* split into 7 training sets, preserving the order of people */
 		folds.resize(NUM_FOLDS);
 		for (int i=0; i < image_names.size(); i++) {
@@ -72,7 +55,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 			training_images.clear();
 			training_images.resize(people.size());
 			for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
-				which_fold = (fold + x) % 7;
+				which_fold = (fold + x) % NUM_FOLDS;
 				int k=0;
 				for (int person=0; person<people.size(); person++) {
 					while ( k < folds[which_fold].size() && (folds[which_fold][k].substr(5, people[person].size()) == people[person].substr(0, people[person].size()))) {
@@ -90,24 +73,24 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 			int guessed_correct = 0;
 
 			/* train on this set of training subsamples */
-			lbp_train(training_images, histograms, levels);
+			lbp_train(training_images, histograms, MAX_LEVELS);
 
 			/* run recognition for testing subsample */
 			for (int i=0; i < testing_images.size(); i++) {
 				std::string test_person = testing_images[i];
-				std::string guessed = lbp_test(test_person, people, histograms, levels);
+				std::string guessed = lbp_test(test_person, people, histograms, MAX_LEVELS);
 			
 				/* determine if lbp guessed properly. test_person is a file name, so we simply
 					search in the file name for the guessed person */
 				if (test_person.find(guessed) != std::string::npos) {
 					guessed_correct++;
+					//std::cout << "guessed " << guessed_correct << "correct" << std::endl;
 				}
 			}
 
 			/* in order to log the recognition rate */
-			std::cout << "for " << levels << " guessed with a rate of " << (((double) guessed_correct)/ ((double) folds[6].size())) << std::endl;
+			std::cout << "for " << MAX_LEVELS << " guessed with a rate of " << (((double)guessed_correct) / ((double)folds[NUM_FOLDS-1].size())) << std::endl;
 		}
-	}
 	system("pause");
 }
 

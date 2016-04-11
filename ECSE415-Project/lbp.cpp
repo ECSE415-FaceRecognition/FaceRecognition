@@ -23,10 +23,10 @@ Mat computeLBP(const Mat input);
 Mat computeImageLBP(const Mat input, int patchNumber);
 vector<Mat> getSpatialPyramidHistogram(const Mat input, int levels);
 
-void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<cv::Mat>> &histograms, int levels) {
+void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels) {
 	/* train */
 	for (unsigned int i=0; i < people.size(); i++) {
-		std::vector<cv::Mat> individual_histogram;
+		std::vector<std::vector<cv::Mat>> individual_histogram;
 		for (unsigned int j = 0; j < people[i].size(); j++) {
 			std::string name = people[i][j];
 			// open image
@@ -36,14 +36,14 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 			cv::cvtColor(im, im, CV_RGB2GRAY);
 
 			//compute spatial pyramid histogram for number of level
-			//individual_histogram.push_back(getSpatialPyramidHistogram(im, levels));
+			individual_histogram.push_back(getSpatialPyramidHistogram(im, levels));
 		}
 		
 		histograms.push_back(individual_histogram);
 	}
 }
 
-string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<cv::Mat>> &histograms,  int levels) {
+string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels) {
 	// open image
 	cv::Mat im = cv::imread(test_file);
 		
@@ -51,15 +51,23 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 	cv::cvtColor(im, im, CV_RGB2GRAY);
 		
 	//compute spatial pyramid histogram for number of level
-	Mat whom = Mat::zeros(10, 10, CV_8U);//getSpatialPyramidHistogram(im, levels);
-
+	std::vector<Mat> person_hist = getSpatialPyramidHistogram(im, levels);
+	
+	cv::Mat whom;
+	for (auto histogram : person_hist) {
+		whom.push_back(histogram);
+	}
 	
 	/* person 1 */
 	double best = std::numeric_limits<double>::max();
 	int person = -1;
 	for (unsigned int i = 0; i<histograms.size(); i++) {
 		for (unsigned int j = 0; j<histograms[i].size(); j++) {
-			double diff = cv::compareHist(histograms[i][j], whom, CV_COMP_CHISQR);
+			cv::Mat concat;
+			for (auto histogram : histograms[i][j]) {
+				concat.push_back(histogram);
+			}
+			double diff = cv::compareHist(concat, whom, CV_COMP_CHISQR);
 
 			if (diff < best) {
 				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
@@ -574,7 +582,7 @@ Mat getLBPConfusionMatrix(int levels){
 	return confusionMatrix;
 }
 
-void main()
+void linus_main()
 {
 	//show head pose data base
 	Mat headPoseImage = displayPoseImages(15, 2);
