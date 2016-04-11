@@ -25,17 +25,6 @@ const char POSE_DIR[] = "HeadPoseImageDatabase/";
 
 //functions by Jit 
 
-//get Image name based on specific pose from Pose Database
-std::string get_image_pose(int id, int serie, int number, std::string tilt, std::string pan) {
-	std::stringstream s, id_ss, number_ss;
-
-	id_ss << std::setfill('0') << std::setw(2) << id;
-	number_ss << std::setfill('0') << std::setw(2) << number;
-
-	s << POSE_DIR << "Person" << id_ss.str() << "/" << "person" << id_ss.str() << serie << number_ss.str() << tilt << pan << ".jpg";
-	return s.str();
-}
-
 //get  image path for QMUL database !!!!!this is not working right, on person 13 it screws up
 std::string get_image_qmul(std::string person, int tilt, int angle) {
 	std::stringstream s, tilt_ss, angle_ss;
@@ -119,8 +108,55 @@ vector<vector<string>> get_image_Path_hpid(string tilt, string pan){
 	return output;
 }
 
-//load all hpid images based on tilt and pan, already cropped
-vector <Mat> get_annotated_Image_hpid(string tilt, string pan){
+//get annotation for all images of a certain pose
+vector <Rect> get_Rect_Image_hpid(string tilt, string pan){
+	vector <Rect> output;
+	//get Path of image files
+	vector<vector<string>> imagePath = get_image_Path_hpid(tilt, pan);
+
+	//iterate through every name
+	for (int i = 0; i < imagePath[1].size(); i++){
+		//load annotation file and extract center points
+		ifstream file(imagePath[1][i]);
+		string str;
+		string annotationFile;
+		int count = 0;
+		int centerX;
+		int centerY;
+		while (getline(file, str))
+		{
+			if (count == 3){
+				centerX = stoi(str);
+				//check if outside of boundary, if so shift
+				if (50 > centerX){
+					centerX = 50;
+				}
+				if (334 < centerX){
+					centerX = 334;
+				}
+
+			}
+			if (count == 4){
+				centerY = stoi(str);
+				//check if outside of boundary, if so shift
+				if (50 > centerY){
+					centerY = 50;
+				}
+				if (238 < centerY){
+					centerY = 238;
+				}
+			}
+			count++;
+		}
+		//get rectangle
+		Rect faceRect(centerX - 50, centerY - 50, 100, 100);
+		output.push_back(faceRect);
+	}
+	return output;
+}
+
+//get all images of a certain pose
+vector <Mat> get_Image_hpid(string tilt, string pan){
 	
 	vector <Mat> output;
 	//get Path of image files
@@ -131,57 +167,64 @@ vector <Mat> get_annotated_Image_hpid(string tilt, string pan){
 		//load image
 		Mat currentImage = imread(imagePath[0][i]);
 		
-		//load annotation file and extract center points
-			ifstream file(imagePath[1][i]);
-			string str;
-			string annotationFile;
-			int count = 0;
-			int centerX;
-			int centerY;
-			while (getline(file, str))
-			{
-				if (count == 3){
-					centerX = stoi(str);
-					//check if outside of boundary, if so shift
-					if (50 > centerX){
-						centerX = 50;
-					}
-					if (334 < centerX){
-						centerX = 334;
-					}
-
-				}
-				if (count == 4){
-					centerY = stoi(str);
-					//check if outside of boundary, if so shift
-					if (50 > centerY){
-						centerY = 50;
-					}
-					if (238 < centerY){
-						centerY = 238;
-					}
-				}
-				count++;
-			}
-		//draw rectangle on center of face
-			Rect faceRect(centerX - 50, centerY - 50, 100, 100);
-			rectangle(currentImage, faceRect, 255, 1, 8, 0);
-
-			//show image
-			//imshow("Wun", currentImage);
-			//waitKey(0);
-		//crop image
-			Mat croppedImage = currentImage(faceRect);
-
 		//convert to grayscale and push into array
-			cvtColor(croppedImage, croppedImage, CV_RGB2GRAY);
-			output.push_back(croppedImage);
+		cvtColor(currentImage, currentImage, CV_RGB2GRAY);
+		output.push_back(currentImage);
 	}
 	return output;
 }
 
+//display image for all 65 poses based on ID and series
+Mat displayPoseImages(int id, int series){
+	//create output
+	Mat stichedImage;
 
-//get array of size: 21 poses x # of images containing all training images for coarse pose groups
+	//define tilt and pan for valid images
+	vector<string> tilt = { "+30", "+15", "+0", "-15","-30" };
+	vector <string> pan = { "+90", "+75", "+60", "+45", "+30", "+15", "+0", "-15", "-30", "-45", "-60", "-75", "-90"};
+
+	//for all tilts
+	for (int i = 0; i < tilt.size(); i++) {
+		//for all pans
+		Mat imageRow;
+		for (int j = 0; j < pan.size(); j++) {
+			//get images for this pose
+			//load images for this angle
+				vector <Mat> loadedPoses = get_Image_hpid(tilt[i], pan[j]);
+
+				//load rectangle for this angle
+				vector <Rect> loadedRect = get_Rect_Image_hpid(tilt[i], pan[j]);
+
+				//find array position for person and series
+				int position = (id)*series-1;
+				
+				//extract image and rectangel
+				Mat image = loadedPoses[position];
+				Rect rectFace = loadedRect[position];
+				
+				//draw rectangle on image
+				rectangle(image, rectFace, 255, 2, 8, 0);
+
+				//append horizontally
+				if (j == 0){
+					imageRow = image;
+				}
+				else{
+					hconcat(imageRow, image, imageRow);
+				}
+				}
+		//append vertically
+		stichedImage.push_back(imageRow);
+		}
+
+	//resize image
+	int resizeFactor = 3;
+	resize(stichedImage, stichedImage, Size(stichedImage.cols / 3, stichedImage.rows / 3));
+	//return 		
+	return stichedImage;
+}
+
+//get array of size: 21 poses x # of images containing all training images mapped into coarse pose groups
 vector <vector<Mat>> getPoseEstimationTrainImages(){
 	//create pose estimation training array
 	vector <vector<Mat>> poseTrainingImages;
@@ -240,8 +283,7 @@ vector <vector<Mat>> getPoseEstimationTrainImages(){
 	return poseTrainingImages;
 }
 
-
-//get array of size: 21 poses x # of images containing all testing images for coarse pose groups
+//get array of size: 21 poses x # of images containing all testing images mapped into coarse pose groups
 vector <vector<Mat>> getPoseEstimationTestingImages(){
 	//create pose estimation testing array
 	vector <vector<Mat>> poseTestingImages;
@@ -262,10 +304,19 @@ vector <vector<Mat>> getPoseEstimationTestingImages(){
 			//for all fine tilts
 			for (int k = 0; k < tilt[i].size(); k++) {
 				//load images for this angle
-				vector <Mat> loadedPoses = get_annotated_Image_hpid(tilt[i][k], pan[j]);
+				vector <Mat> loadedPoses = get_Image_hpid(tilt[i][k], pan[j]);
+				
+				//load rectangle for this angle
+				vector <Rect> loadedRect = get_Rect_Image_hpid(tilt[i][k], pan[j]);
 
 				//append every image in this array to poseTestImages
 				for (int n = 0; n < loadedPoses.size(); n++) {
+					Mat currentImg = loadedPoses[n];
+					
+					//crop image using rect
+					currentImg = currentImg(loadedRect[n]);
+					
+					//pushback
 					sameposeTestImages.push_back(loadedPoses[n]);
 				}
 			}
@@ -277,7 +328,7 @@ vector <vector<Mat>> getPoseEstimationTestingImages(){
 	return poseTestingImages;
 	}
 
-
+//LBP computation functions
 vector<Mat> getSpatialPyramidHistogram(const Mat input, int levels){
 	vector<Mat> spatialHistogram(levels);
 	//compute histogram for each level
@@ -412,12 +463,10 @@ double computePixelLBP(const Mat input){
 
 }
 
-
-
-void main()
-{
+//compute confusion matrix for LBP for a certain number of levels
+Mat getLBPConfusionMatrix(int levels){
 	//LBP Histograms for Pose Estimation
-	int levels = 3; //this means 2 levels other than level 0
+	levels = levels + 1;
 
 	//create pose Estimation training dataset
 	vector <vector<Mat>> poseEstimationTrainingImages = getPoseEstimationTrainImages();
@@ -426,93 +475,105 @@ void main()
 	vector <vector<Mat>> poseEstimationTestingImages = getPoseEstimationTestingImages();
 	cout << "All images loaded! \n";
 	//create LBP spatial pyramid histograms for all training images
-		vector <vector<vector<Mat>>> trainingHistograms(21);
-		//run through all images in the 21 poses and create histogram	
-		for (int i = 0; i < 21; i++){
-			for (int j = 0; j < poseEstimationTrainingImages[i].size(); j++){
+	vector <vector<vector<Mat>>> trainingHistograms(21);
+	//run through all images in the 21 poses and create histogram	
+	for (int i = 0; i < 21; i++){
+		for (int j = 0; j < poseEstimationTrainingImages[i].size(); j++){
 			//for faster run
 			//for (int j = 0; j < 5; j++){
-				trainingHistograms[i].push_back(getSpatialPyramidHistogram(poseEstimationTrainingImages[i][j], levels));
-			}
+			trainingHistograms[i].push_back(getSpatialPyramidHistogram(poseEstimationTrainingImages[i][j], levels));
 		}
-		cout << "Training Histogram DONE! \n";
+	}
+	cout << "Training Histogram DONE! \n";
 	//create LBP spatial pyramid histograms for all testing images
-		vector <vector<vector<Mat>>> testingHistograms(21);
-		//run through all images in the 21 poses and create histogram	
-		for (int i = 0; i < 21; i++){
-			for (int j = 0; j < poseEstimationTestingImages[i].size(); j++){
+	vector <vector<vector<Mat>>> testingHistograms(21);
+	//run through all images in the 21 poses and create histogram	
+	for (int i = 0; i < 21; i++){
+		for (int j = 0; j < poseEstimationTestingImages[i].size(); j++){
 			//for faster run
 			//for (int j = 0; j < 5; j++){
-				testingHistograms[i].push_back(getSpatialPyramidHistogram(poseEstimationTestingImages[i][j], levels));
-			}
+			testingHistograms[i].push_back(getSpatialPyramidHistogram(poseEstimationTestingImages[i][j], levels));
 		}
-		cout << "Testing Histograms DONE! \n";
+	}
+	cout << "Testing Histograms DONE! \n";
 
 	//find pose and create confusion matrix
-		int numberOfPoses = 21;
-		Mat confusionMatrix(21, 21, CV_64F, Scalar(0));
-		
-		//go through all poses
-		for (int i = 0; i<numberOfPoses; i++) {
-			//go through all test images for that pose
-			for (int j = 0; j < testingHistograms[i].size(); j++) {
-				vector<Mat> currentTestHistogram = testingHistograms[i][j];
-				
-				//matched pose for current image
-				int matchedPose;
+	int numberOfPoses = 21;
+	Mat confusionMatrix(21, 21, CV_64F, Scalar(0));
 
-				//set inital distance to infinity
-				double smallestDistance = numeric_limits<double>::infinity();
+	//go through all poses
+	for (int i = 0; i<numberOfPoses; i++) {
+		//go through all test images for that pose
+		for (int j = 0; j < testingHistograms[i].size(); j++) {
+			vector<Mat> currentTestHistogram = testingHistograms[i][j];
 
-				//for each trained subject, compare each of the 21 poses with all of the images
-				for (int k = 0; k < numberOfPoses; k++) {
-					for (int u = 0; u < trainingHistograms[k].size(); u++) {
-						//find distance
-						 vector<double>levelDistances(levels);
-							//compare all histograms on a per level basis
-						 for (int lvl = 0; lvl < levels; lvl++){
-							 levelDistances[lvl] = compareHist(currentTestHistogram[lvl], trainingHistograms[k][u][lvl], CV_COMP_CHISQR);
-						 }
-						 //calculate weighted distance
-							//compute sum
-							double sum=0;
-							for (int s = 1; s < levels; s++){
-								 sum = sum + levelDistances[s] / (pow(2, (levels - 1 - s + 1)));
-							}
-							//compute final distance
-							double distance = levelDistances[0] / (pow(2, (levels - 1)));
+			//matched pose for current image
+			int matchedPose;
 
-						//check if this is the smallest distance yet
-						if (distance < smallestDistance){
-							//enter new distance
-							smallestDistance = distance;
-							//set as matched pose
-							matchedPose = k;
-						}
+			//set inital distance to infinity
+			double smallestDistance = numeric_limits<double>::infinity();
+
+			//for each trained subject, compare each of the 21 poses with all of the images
+			for (int k = 0; k < numberOfPoses; k++) {
+				for (int u = 0; u < trainingHistograms[k].size(); u++) {
+					//find distance
+					vector<double>levelDistances(levels);
+					//compare all histograms on a per level basis
+					for (int lvl = 0; lvl < levels; lvl++){
+						levelDistances[lvl] = compareHist(currentTestHistogram[lvl], trainingHistograms[k][u][lvl], CV_COMP_CHISQR);
+					}
+					//calculate weighted distance
+					//compute sum
+					double sum = 0;
+					for (int s = 1; s < levels; s++){
+						sum = sum + levelDistances[s] / (pow(2, (levels - 1 - s + 1)));
+					}
+					//compute final distance
+					double distance = levelDistances[0] / (pow(2, (levels - 1)));
+
+					//check if this is the smallest distance yet
+					if (distance < smallestDistance){
+						//enter new distance
+						smallestDistance = distance;
+						//set as matched pose
+						matchedPose = k;
 					}
 				}
-				//add for this image the result to confusion matrix - real poses are column, matched are row
-				confusionMatrix.at<double>(matchedPose, i) = confusionMatrix.at<double>(matchedPose, i) + 1;
-			}	
-		}
-		//normalize confusion matrix
-		//go through every row
-		for (int row = 0; row < confusionMatrix.rows; row++) {
-			//sum up every item in this row
-			double sum = 0;
-			for (int item = 0; item < confusionMatrix.cols; item++) {
-				sum = sum + confusionMatrix.at<double>(row, item);
 			}
-			//devide every element in this row by this number sum is not zero
-			if (sum != 0){
+			//add for this image the result to confusion matrix - real poses are column, matched are row
+			confusionMatrix.at<double>(matchedPose, i) = confusionMatrix.at<double>(matchedPose, i) + 1;
+		}
+	}
+	//normalize confusion matrix
+	//go through every row
+	for (int row = 0; row < confusionMatrix.rows; row++) {
+		//sum up every item in this row
+		double sum = 0;
+		for (int item = 0; item < confusionMatrix.cols; item++) {
+			sum = sum + confusionMatrix.at<double>(row, item);
+		}
+		//devide every element in this row by this number sum is not zero
+		if (sum != 0){
 			confusionMatrix.row(row) = confusionMatrix.row(row) / sum;
-			}
 		}
-		//display confusion matrix
-		cout << confusionMatrix;
+	}
+	//display confusion matrix
+	return confusionMatrix;
+}
 
-		//wait to close console
-		getchar();
+void main()
+{
+	//show head pose data base
+	Mat headPoseImage = displayPoseImages(15, 2);
+	imshow("Head Pose Example", headPoseImage);
+	waitKey(0);
+
+	//compute confusion matrix - set level = 2
+	Mat LBPConfusionMatrix = getLBPConfusionMatrix(2);
+	cout << LBPConfusionMatrix;
+
+	//wait to close console
+	getchar();
 	}
 
 
