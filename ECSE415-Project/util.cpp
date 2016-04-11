@@ -6,6 +6,8 @@
 
 #include "util.h"
 
+#include "tinydir.h"
+
 using namespace std;
 
 string tilts[] = {"-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90"};
@@ -57,4 +59,27 @@ vector<vector<string>> open_all_qmul_by_pose(vector<string> people) {
 		poses.push_back(tmp);
 	}
 	return poses;
+}
+
+//get QMUL name list
+vector<string> getQmulNames(){
+	tinydir_dir dir;
+	tinydir_open(&dir, QMUL_DIR);
+
+	std::vector<std::string> people;
+
+	// populate peopls with everyone from the QMUL dataset
+	while (dir.has_next)
+	{
+		tinydir_file file;
+		tinydir_readfile(&dir, &file);
+		if (file.is_dir)
+		{
+			if (file.name[0] != '.') {
+				people.push_back(file.name);
+			}
+		}
+		tinydir_next(&dir);
+	}
+	return people;
 }
