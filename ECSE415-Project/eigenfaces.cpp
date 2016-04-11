@@ -32,19 +32,25 @@ void generate_ef(vector<Mat> faces) {
 	cout << diff_faces[0].at<double>(4,6) << endl;
 	cout << D.at<double>(4 * img_w + 6, 0) << endl;
 	cout << "size of D " << D.size() << endl;
+	cout << "D columns = " << D.cols << endl;
+	cout << "D rows = " << D.rows << endl;
 	
 
 	Mat DD_t;
-	// D x D_transpose
-	DD_t = D*D.t();
-	cout << DD_t.size() << endl;
+	//D x D_transpose
+	DD_t = D.t()*D;
+	//cout << DD_t.size() << endl;
 	
 	//do i need this?
-	Mat covar, mean;
-	calcCovarMatrix(DD_t, covar, mean, CV_COVAR_COLS);
-	cout << covar.size() << endl;
 
+	//DD_t.convertTo(DD_t, CV_32FC1);
 
+	//Mat covar, mean;
+	//calcCovarMatrix(DD_t, covar, mean, CV_COVAR_SCRAMBLED | CV_COVAR_COLS);
+	
+	//cout << covar.size() << endl;
+
+	//covar.convertTo(covar, CV_32FC1);
 
 	Mat eigen_vec;
 	Mat eigen_val;
@@ -57,7 +63,11 @@ void generate_ef(vector<Mat> faces) {
 		cout << "error in eigen function" << endl;
 		_exit(0);
 	}
-	
+	vector<double> coefs;
+	for (int i = 0; i < diff_faces.size(); i++) {
+		coefs.push_back(D.dot(diff_faces[i]));
+	}
+
 	//return DD_t;
 }
 
