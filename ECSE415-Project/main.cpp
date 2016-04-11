@@ -21,7 +21,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people);
 void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string>> &folds);
 void qmul_all_images_of_person(std::string person);
 
-void main()
+void test_main()
 {
 	//load image and set directory - just for testing
 	tinydir_dir dir;
