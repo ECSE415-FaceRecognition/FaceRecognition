@@ -79,7 +79,7 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 				sum = sum + levelDistances[s] / (pow(2, (levels - 1 - s + 1)));
 			}
 			//compute final distance
-			double diff = levelDistances[0] / (pow(2, (levels - 1)));
+			double diff = levelDistances[0] / (pow(2, (levels - 1))) + sum;
 
 			if (diff < best) {
 				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
