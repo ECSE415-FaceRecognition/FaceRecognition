@@ -6,5 +6,10 @@
 #include <string>
 #include <vector>
 
+struct LBPData {
+	std::vector<cv::Mat> hist;
+	std::string name;
+};
+
 void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels);
 std::string lbp_test(std::string const& test_file, std::vector<std::string> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels);

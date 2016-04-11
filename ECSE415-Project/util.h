@@ -12,3 +12,17 @@ std::string get_image_qmul(std::string person, int tilt, int pose);
 std::vector<std::vector<std::string>> open_all_qmul_by_person(std::vector<std::string> people);
 std::vector<std::vector<std::string>> open_all_qmul_by_pose(std::vector<std::string> people);
 std::vector<std::string> getQmulNames();
+
+template <typename T>
+void seven_fold_cv(std::vector<T> &people, std::vector<T> &folds) {
+
+	/* randomize the people vector */
+	std::random_shuffle(people.begin(), people.end());
+
+	/* split people into the 7 subsamples */
+	int i = people.size();
+	while (i > 0) {
+		i--;
+		folds[i%NUM_FOLDS].push_back(people[i]);
+	}
+}

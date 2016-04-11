@@ -70,7 +70,7 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 			double diff = cv::compareHist(concat, whom, CV_COMP_CHISQR);
 
 			if (diff < best) {
-				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
+				std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
 				best = diff;
 				person = i;
 			}
