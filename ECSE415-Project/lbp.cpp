@@ -37,7 +37,7 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 	}
 }
 
-void lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<cv::Mat>> &histograms,  int levels) {
+string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<cv::Mat>> &histograms,  int levels) {
 	// open image
 	cv::Mat im = cv::imread(test_file);
 		
@@ -56,14 +56,14 @@ void lbp_test(string const& test_file, vector<string> const& people, std::vector
 			double diff = cv::compareHist(histograms[i][j], whom, CV_COMP_CHISQR);
 
 			if (diff < best) {
-				std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
+				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
 				best = diff;
 				person = i;
 			}
 		}
 	}
-
-	std::cout << "LBP Face Detection guesses: " << people[person] << std::endl;
+	//std::cout << "LBP Face Detection guesses: " << people[person] << std::endl;
+	return people[person];
 }
 
 Mat getSpatialPyramidHistogram(const Mat input, int levels){

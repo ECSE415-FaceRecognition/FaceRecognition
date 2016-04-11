@@ -63,7 +63,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 
 	std::vector<std::vector<cv::string>> training_images;
 	training_images.resize(people.size());
-	for (int fold=0; fold < 1; fold++) {
+	for (int fold=0; fold < 6; fold++) {
 		int i=0;
 		for (int person=0; person<people.size(); person++) {
 			while ( i < folds[fold].size() && (folds[fold][i].substr(5, people[person].size()) == people[person].substr(0, people[person].size()))) {
@@ -73,17 +73,19 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 		}
 	}
 
+	int guessed_correct = 0;
 	lbp_train(training_images, histograms, levels);
 
-	int x = rand() % folds.size();
-	int y = rand() % folds[x].size();
-	std::string test_person = folds[x][y];
+	for (int i=0; i < folds[6].size(); i++) {
+		std::string test_person = folds[6][i];
+		std::string guessed = lbp_test(test_person, people, histograms, levels);
+		//std::cout << "Guessed: " << guessed << ", " << "Actual person was: " << test_person << std::endl;
+		if (test_person.find(guessed) != std::string::npos) {
+			guessed_correct++;
+		}
+	}
 
-
-
-	lbp_test(test_person, people, histograms, levels);
-	std::cout << "Actual person was: " << test_person << std::endl;
-
+	std::cout << "for " << levels << "guessed with a rate of " << (((float) guessed_correct)/ ((float) folds[6].size())) << std::endl;
 
 	system("pause");
 }
