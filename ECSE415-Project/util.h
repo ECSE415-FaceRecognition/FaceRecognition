@@ -14,7 +14,7 @@ std::vector<std::vector<std::string>> open_all_qmul_by_pose(std::vector<std::str
 std::vector<std::string> getQmulNames();
 
 template <typename T>
-void seven_fold_cv(std::vector<T> &people, std::vector<T> &folds) {
+void seven_fold_cv(std::vector<T> &people, std::vector<std::vector<T>> &folds) {
 
 	/* randomize the people vector */
 	std::random_shuffle(people.begin(), people.end());

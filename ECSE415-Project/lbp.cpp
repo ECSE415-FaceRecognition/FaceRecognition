@@ -64,7 +64,7 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 	
 	/* person 1 */
 	double best = std::numeric_limits<double>::max();
-	int person = -1;
+	string guess;
 	for (unsigned int i = 0; i<histograms.size(); i++) {
 		for (unsigned int j = 0; j<histograms[i].size(); j++) {
 			cv::Mat concat;
@@ -76,12 +76,17 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 			if (diff < best) {
 				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
 				best = diff;
-				person = i;
+				guess = histograms[i][j].name;
 			}
 		}
 	}
 	//std::cout << "LBP Face Detection guesses: " << people[person] << std::endl;
-	return people[person];
+	for (string person : people) {
+		if (guess.find(person) != string::npos) {
+			return person;
+		}
+	}
+	return "NotFound";
 }
 
 //functions by Linus
