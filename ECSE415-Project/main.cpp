@@ -34,7 +34,9 @@ void main()
 }
 
 void do_lbp_face_recognition(std::vector<std::string> const& people) {
-	std::vector<std::vector<std::vector<cv::Mat>>> histograms;
+
+	/* N people by X images per person */
+	std::vector<std::vector<LBPData>> histograms;
 
 	std::vector<std::vector<cv::string>> image_names =  open_all_qmul_by_person(people);
 	std::vector<std::vector<cv::string>> folds;

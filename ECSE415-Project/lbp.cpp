@@ -23,10 +23,10 @@ Mat computeLBP(const Mat input);
 Mat computeImageLBP(const Mat input, int patchNumber);
 vector<Mat> getSpatialPyramidHistogram(const Mat input, int levels);
 
-void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels) {
+void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<LBPData>> &histograms, int levels) {
 	/* train */
 	for (unsigned int i=0; i < people.size(); i++) {
-		std::vector<std::vector<cv::Mat>> individual_histogram;
+		std::vector<LBPData> each_person;
 		for (unsigned int j = 0; j < people[i].size(); j++) {
 			std::string name = people[i][j];
 			// open image
@@ -36,14 +36,18 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 			cv::cvtColor(im, im, CV_RGB2GRAY);
 
 			//compute spatial pyramid histogram for number of level
-			individual_histogram.push_back(getSpatialPyramidHistogram(im, levels));
+			LBPData tmp;
+			tmp.hist = getSpatialPyramidHistogram(im, levels);
+			tmp.name = name;
+
+			each_person.push_back(tmp);
 		}
 		
-		histograms.push_back(individual_histogram);
+		histograms.push_back(each_person);
 	}
 }
 
-string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<std::vector<cv::Mat>>> &histograms, int levels) {
+string lbp_test(string const& test_file, vector<string> const& people, std::vector<std::vector<LBPData>> &histograms, int levels) {
 	// open image
 	cv::Mat im = cv::imread(test_file);
 		
@@ -64,13 +68,13 @@ string lbp_test(string const& test_file, vector<string> const& people, std::vect
 	for (unsigned int i = 0; i<histograms.size(); i++) {
 		for (unsigned int j = 0; j<histograms[i].size(); j++) {
 			cv::Mat concat;
-			for (auto histogram : histograms[i][j]) {
+			for (auto histogram : histograms[i][j].hist) {
 				concat.push_back(histogram);
 			}
 			double diff = cv::compareHist(concat, whom, CV_COMP_CHISQR);
 
 			if (diff < best) {
-				std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
+				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
 				best = diff;
 				person = i;
 			}
