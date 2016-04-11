@@ -54,6 +54,8 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 	std::vector<std::vector<cv::string>> image_names =  open_all_qmul_by_person(people);
 	std::vector<std::vector<cv::string>> folds;
 
+	int levels = 1;
+
 	/* split into 7 training sets, preserving the order of people */
 	folds.resize(NUM_FOLDS);
 	for (int i=0; i < image_names.size(); i++) {
@@ -63,20 +65,26 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 
 	std::vector<std::vector<cv::string>> training_images;
 	training_images.resize(people.size());
-
+	std::vector<cv::string> testing_images;
 	/* create a set of training images from 6 of the 7 folds */
-	for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
-		int i=0;
-		for (int person=0; person<people.size(); person++) {
-			while ( i < folds[fold].size() && (folds[fold][i].substr(5, people[person].size()) == people[person].substr(0, people[person].size()))) {
-				training_images[person].push_back(folds[fold][i]);
-				i++;
+	int which_fold;
+	for (int x = 0; x < NUM_FOLDS; x++) {
+		training_images.clear();
+		training_images.resize(people.size());
+		for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
+			which_fold = (fold + x) % 7;
+			int k=0;
+			for (int person=0; person<people.size(); person++) {
+				while ( k < folds[which_fold].size() && (folds[which_fold][k].substr(5, people[person].size()) == people[person].substr(0, people[person].size()))) {
+					training_images[person].push_back(folds[which_fold][k]);
+					k++;
+				}
 			}
 		}
-	}
+		which_fold = (NUM_FOLDS-1 + x) % 7;
+		testing_images = folds[which_fold];
 
-	/* run lbp recognition for a single set of folds */
-	for (int levels = 1; levels <= 10; levels++) {
+		/* run lbp recognition for a single set of folds */
 		/* clear histograms from last session */
 		histograms.clear();
 		int guessed_correct = 0;
@@ -85,12 +93,12 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 		lbp_train(training_images, histograms, levels);
 
 		/* run recognition for testing subsample */
-		for (int i=0; i < folds[(NUM_FOLDS-1)].size(); i++) {
-			std::string test_person = folds[6][i];
+		for (int i=0; i < testing_images.size(); i++) {
+			std::string test_person = testing_images[i];
 			std::string guessed = lbp_test(test_person, people, histograms, levels);
 			
 			/* determine if lbp guessed properly. test_person is a file name, so we simply
-			   search in the file name for the guessed person */
+				search in the file name for the guessed person */
 			if (test_person.find(guessed) != std::string::npos) {
 				guessed_correct++;
 			}
@@ -99,7 +107,6 @@ void do_lbp_face_recognition(std::vector<std::string> const& people) {
 		/* in order to log the recognition rate */
 		std::cout << "for " << levels << " guessed with a rate of " << (((double) guessed_correct)/ ((double) folds[6].size())) << std::endl;
 	}
-
 	system("pause");
 }
 
