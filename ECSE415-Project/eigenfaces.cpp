@@ -35,7 +35,7 @@ void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 
 	
 
-	if (eigen(DD_t, true, eigen_vec_tmp, eigen_val)) {
+	if (eigen(DD_t, true,eigen_val,eigen_vec_tmp)) {
 		cout << eigen_vec_tmp.size() << endl;
 		cout << eigen_val.size() << endl;
 	}
@@ -44,22 +44,24 @@ void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 		_exit(0);
 	}
 	
+	eigen_vec_tmp = D*eigen_vec_tmp;
+	cout << "eigen_vec_tmp = " << eigen_vec_tmp.size() << endl;
+
 	//Mat source = Mat::eye(eigen_vec.size(), CV_64FC1);
 	Mat dst;
-
 	cv::sortIdx(eigen_val, dst, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
 	cout << dst.size() << endl;
 	cv::sort(eigen_val, eigen_val, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
-	
 	sort_mat(eigen_vec_tmp, eigen_vec, dst);
-	
+	cout << "size of eigen_vec = " << eigen_vec.size() << endl;
 	//return DD_t;
 }
 
 void sort_mat(const Mat &input, Mat &sorted, const Mat &indices) {
-	cout << indices.cols << endl;
-	for (int i = 0; i < indices.cols; i++) {
-		sorted.push_back(input.row(indices.at<double>(i)));
+	cout << indices.rows << endl;
+	sorted = Mat::zeros(input.size(), CV_64FC1);
+	for (int i = 0; i < indices.rows; i++) {
+		input.col(indices.at<int>(0, i)).copyTo(sorted.col(i));
 	}
 }
 
@@ -96,11 +98,15 @@ Mat train(vector<Mat> faces) {
 	Mat D = generate_flat_diff(faces);
 	generate_ef(D, eigen_faces, eigen_val);
 
-	Mat coefs = Mat::zeros(faces.size(),faces.size(), CV_64F);
-
+	Mat coefs = Mat::zeros(eigen_faces.size(), CV_64F);
+	//Mat temp = ((int)faces.size(), (int)faces.size(), CV_64FC1, D);
+	//Mat temp_ev = eigen_faces.reshape(1, 1);
+	//cout << temp_ev.size() << endl;
 	for (int i = 0; i < faces.size(); i++) {
 		for (int j = 0; j < faces.size(); j++) {
-			coefs.at<double>(j, i) = D.dot(eigen_faces);
+			cout << "D.col(j) size = " << D.col(j).size() << endl;
+			cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
+			coefs.at<double>(i, j) = D.col(j).dot(eigen_faces.col(i));
 		}
 	}
 	return coefs;
