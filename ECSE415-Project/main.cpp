@@ -19,6 +19,11 @@ void do_lbp_face_recognition(std::vector<std::string> const& people);
 void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string> > &folds);
 void qmul_all_images_of_person(std::string person);
 
+double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp);
+
+/* logging */
+std::ofstream lbp_face_log;
+
 int main()
 {
 	//load image and set directory - just for testing
@@ -41,7 +46,6 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	std::vector<std::vector<LBPData> > folds;
 
     /* open a file for logging */
-	std::ofstream lbp_face_log;
 	lbp_face_log.open("lbp_face_log.txt");
 
 	/* get lbp histrograms of all images.
@@ -55,50 +59,11 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 		srand(0xDEADBEEF);	// make test deterministic
 		seven_fold_cv(histograms[i], folds);
 	}
-
-    /* set of folds to use for training */
-	std::vector<std::vector<LBPData> > training_images;
-    /* set of folds to use for testing */
-	std::vector<LBPData> testing_images;
 	
     /* calculate LBP over levels up to MAX_LEVELS */
 	for (int level = 1; level <= MAX_LEVELS; level++) {
-		double average_rate = 0;
-        /* variable to keep track of fold */
-		int which_fold;
-		/* create a set of training images from 6 of the 7 folds */
-		for (int x = 0; x < NUM_FOLDS; x++) {
-			training_images.clear();
-			for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
-				which_fold = (fold + x) % NUM_FOLDS;
-				training_images.push_back(folds[which_fold]);
-			}
-			which_fold = (NUM_FOLDS-1 + x) % NUM_FOLDS;
-			testing_images = folds[which_fold];
+        double average_rate = do_lbp_chisq_match(folds, level, people_tmp);
 
-			int guessed_correct = 0;
-
-			/* run recognition for testing subsample */
-			for (int i=0; i < testing_images.size(); i++) {
-                /* get name and historam laters */
-				std::vector<cv::Mat> test_person = testing_images[i].hist;  //  TODO set as reference
-				std::string test_name = testing_images[i].name;
-				std::string guessed = lbp_test(test_person, people_tmp, training_images, level);
-			
-				/* determine if lbp guessed properly. test_name is a file name, so we simply
-					search in the file name for the guessed person */
-				if (test_name.find(guessed) != std::string::npos) {
-					guessed_correct++;
-					//std::cout << "guessed " << guessed_correct << "correct" << std::endl;
-				}
-			}
-
-			/* log the recognition rate */
-			double rate = (((double)guessed_correct) / ((double)folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size()));
-			lbp_face_log << "For level " << level << " iteration " << x << "guessed" << guessed_correct << " of " << folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size() 
-				<< "with a rate of " << rate << std::endl;
-			average_rate += rate;
-		}
 		std::cout << "Overall rate was " << average_rate / NUM_FOLDS << " for level " << level << std::endl;
 	}
 	system("pause");
@@ -121,4 +86,49 @@ void qmul_all_images_of_person(std::string person) {
 
 	cv::waitKey();
 
+}
+
+
+double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp) {
+    /* set of folds to use for training */
+	std::vector<std::vector<LBPData> > training_images;
+    /* set of folds to use for testing */
+	std::vector<LBPData> testing_images;
+    /* to return */
+	double average_rate = 0;
+    /* variable to keep track of fold */
+	int which_fold;
+	/* create a set of training images from 6 of the 7 folds */
+	for (int x = 0; x < NUM_FOLDS; x++) {
+		training_images.clear();
+		for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
+			which_fold = (fold + x) % NUM_FOLDS;
+			training_images.push_back(folds[which_fold]);
+		}
+		which_fold = (NUM_FOLDS-1 + x) % NUM_FOLDS;
+		testing_images = folds[which_fold];
+
+		int guessed_correct = 0;
+
+		/* run recognition for testing subsample */
+		for (int i=0; i < testing_images.size(); i++) {
+            /* get name and historam laters */
+			std::vector<cv::Mat> test_person = testing_images[i].hist;  //  TODO set as reference
+			std::string test_name = testing_images[i].name;
+			std::string guessed = lbp_test(test_person, people_tmp, training_images, level);
+		
+			/* determine if lbp guessed properly. test_name is a file name, so we simply
+				search in the file name for the guessed person */
+			if (test_name.find(guessed) != std::string::npos) {
+				guessed_correct++;
+				//std::cout << "guessed " << guessed_correct << "correct" << std::endl;
+			}
+		}
+
+		/* log the recognition rate */
+		double rate = (((double)guessed_correct) / ((double)folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size()));
+		lbp_face_log << "For level " << level << " iteration " << x << "guessed" << guessed_correct << " of " << folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size() 
+			<< "with a rate of " << rate << std::endl;
+		average_rate += rate;
+	}
 }
