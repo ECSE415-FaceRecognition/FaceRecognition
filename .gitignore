@@ -244,3 +244,12 @@ _Pvt_Extensions
 # JetBrains Rider
 .idea/
 *.sln.iml
+
+# CMake and executables on Linux
+CMakeCache.txt
+CMakeFiles/
+ImageSegmentation
+Makefile
+QMUL
+cmake_install.cmake
+lbp_face_log.txt
