@@ -1,0 +1,9 @@
+Overall rate was 0.89886 for level 1
+Overall rate was 0.971865 for level 2
+Overall rate was 0.974776 for level 3
+Overall rate was 0.969925 for level 4
+Overall rate was 0.974533 for level 5
+Overall rate was 0.987388 for level 6
+Overall rate was 0.975261 for level 7
+Overall rate was 0.938637 for level 8
+Overall rate was 0.897405 for level 9
