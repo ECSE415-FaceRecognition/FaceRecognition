@@ -4,6 +4,7 @@ Mat get_mean_image(vector<Mat> faces);
 void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val);
 Mat generate_flat_diff(vector<Mat> faces);
 Mat train(vector<Mat> faces);
+void sort_mat(const Mat &input, Mat &sorted, const Mat &indices);
 
 void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 
@@ -29,13 +30,13 @@ void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 
 	//covar.convertTo(covar, CV_32FC1);
 
-	//Mat eigen_vec;
+	Mat eigen_vec_tmp;
 	//Mat eigen_val;
 
 	
 
-	if (eigen(DD_t, true, eigen_vec, eigen_val)) {
-		cout << eigen_vec.size() << endl;
+	if (eigen(DD_t, true, eigen_vec_tmp, eigen_val)) {
+		cout << eigen_vec_tmp.size() << endl;
 		cout << eigen_val.size() << endl;
 	}
 	else {
@@ -46,10 +47,20 @@ void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 	//Mat source = Mat::eye(eigen_vec.size(), CV_64FC1);
 	Mat dst;
 
-	cv::sortIdx(eigen_vec, dst, CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
+	cv::sortIdx(eigen_val, dst, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
 	cout << dst.size() << endl;
-	cv::sort(eigen_vec, eigen_vec, CV_SORT_DESCENDING + CV_SORT_EVERY_ROW);
+	cv::sort(eigen_val, eigen_val, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
+	
+	sort_mat(eigen_vec_tmp, eigen_vec, dst);
+	
 	//return DD_t;
+}
+
+void sort_mat(const Mat &input, Mat &sorted, const Mat &indices) {
+	cout << indices.cols << endl;
+	for (int i = 0; i < indices.cols; i++) {
+		sorted.push_back(input.row(indices.at<double>(i)));
+	}
 }
 
 Mat generate_flat_diff(vector<Mat> faces) {
@@ -87,12 +98,11 @@ Mat train(vector<Mat> faces) {
 
 	Mat coefs = Mat::zeros(faces.size(),faces.size(), CV_64F);
 
-
-
-
-	/*for (int i = 0; i < faces.size(); i++) {
-
-	}*/
+	for (int i = 0; i < faces.size(); i++) {
+		for (int j = 0; j < faces.size(); j++) {
+			coefs.at<double>(j, i) = D.dot(eigen_faces);
+		}
+	}
 	return coefs;
 }
 
