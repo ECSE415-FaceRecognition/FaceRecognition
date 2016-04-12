@@ -39,15 +39,14 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 	std::vector<std::vector<cv::string> > image_names = open_all_qmul_by_person(people_tmp);
 	std::vector<std::vector<LBPData> > folds;
-	//image_names.resize(10);
-	for (auto &image : image_names) {
-		image.resize(10);
-	}
 
+    /* open a file for logging */
 	std::ofstream lbp_face_log;
 	lbp_face_log.open("lbp_face_log.txt");
 
-	/* get lbp histrograms of all images*/
+	/* get lbp histrograms of all images.
+     * when needed, simply pass a copy to the data 
+     */
 	lbp_train(image_names, histograms, MAX_LEVELS);
 
 	/* split into 7 training sets, preserving the order of people */
@@ -57,13 +56,17 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 		seven_fold_cv(histograms[i], folds);
 	}
 
+    /* set of folds to use for training */
 	std::vector<std::vector<LBPData> > training_images;
+    /* set of folds to use for testing */
 	std::vector<LBPData> testing_images;
 	
+    /* calculate LBP over levels up to MAX_LEVELS */
 	for (int level = 1; level <= MAX_LEVELS; level++) {
 		double average_rate = 0;
-		/* create a set of training images from 6 of the 7 folds */
+        /* variable to keep track of fold */
 		int which_fold;
+		/* create a set of training images from 6 of the 7 folds */
 		for (int x = 0; x < NUM_FOLDS; x++) {
 			training_images.clear();
 			for (int fold=0; fold < (NUM_FOLDS-1); fold++) {
@@ -73,20 +76,16 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 			which_fold = (NUM_FOLDS-1 + x) % NUM_FOLDS;
 			testing_images = folds[which_fold];
 
-			/* run lbp recognition for a single set of folds */
-			/* clear histograms from last session */
-			//histograms.clear();
 			int guessed_correct = 0;
-
-			/* train on this set of training subsamples */
 
 			/* run recognition for testing subsample */
 			for (int i=0; i < testing_images.size(); i++) {
-				std::vector<cv::Mat> test_person = testing_images[i].hist;
+                /* get name and historam laters */
+				std::vector<cv::Mat> test_person = testing_images[i].hist;  //  TODO set as reference
 				std::string test_name = testing_images[i].name;
 				std::string guessed = lbp_test(test_person, people_tmp, training_images, level);
 			
-				/* determine if lbp guessed properly. test_person is a file name, so we simply
+				/* determine if lbp guessed properly. test_name is a file name, so we simply
 					search in the file name for the guessed person */
 				if (test_name.find(guessed) != std::string::npos) {
 					guessed_correct++;
@@ -94,8 +93,8 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 				}
 			}
 
+			/* log the recognition rate */
 			double rate = (((double)guessed_correct) / ((double)folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size()));
-			/* in order to log the recognition rate */
 			lbp_face_log << "For level " << level << " iteration " << x << "guessed" << guessed_correct << " of " << folds[(NUM_FOLDS - 1 + x) % NUM_FOLDS].size() 
 				<< "with a rate of " << rate << std::endl;
 			average_rate += rate;
@@ -105,6 +104,9 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	system("pause");
 }
 
+/* open all qmul images of a particular person, as specified in the assignment
+ * description
+ */
 void qmul_all_images_of_person(std::string person) {
 	std::vector<std::string> tmp;
 	tmp.push_back(person);

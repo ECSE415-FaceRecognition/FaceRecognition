@@ -55,31 +55,33 @@ string lbp_test(vector<Mat> test_person, vector<string> const& people, vector<ve
 	string guess;
 	for (unsigned int i = 0; i<histograms.size(); i++) {
 		for (unsigned int j = 0; j<histograms[i].size(); j++) {
-			//double diff = cv::compareHist(person_hist, histograms[i][j].hist, CV_COMP_CHISQR);
-
-			//find distance
+            /* calculate modified chi squared distance */
 			vector<double>levelDistances(levels);
-			//compare all histograms on a per level basis
+			
+            /* compare all histograms on a per level basis */
 			for (int lvl = 0; lvl < levels; lvl++){
 				levelDistances[lvl] = compareHist(test_person[lvl], histograms[i][j].hist[lvl], CV_COMP_CHISQR);
 			}
-			//calculate weighted distance
-			//compute sum
+
+			/* compute sum */
 			double sum = 0;
 			for (int s = 1; s < levels; s++){
 				sum = sum + levelDistances[s] / (pow(2, (levels - 1 - s + 1)));
 			}
-			//compute final distance
+			
+            /* compute final distance */
 			double diff = levelDistances[0] / (pow(2, (levels - 1))) + sum;
 
 			if (diff < best) {
-				//std::cout << "Difference was " << diff << ", opposed to best: " << best << std::endl;
 				best = diff;
 				guess = histograms[i][j].name;
 			}
 		}
 	}
-	//std::cout << "LBP Face Detection guesses: " << people[person] << std::endl;
+
+    /* find proper person to return. I avoid returning file names since lengths and the tilts/pans
+     * differ too much 
+     */
 	for (string person : people) {
 		if (guess.find(person) != string::npos) {
 			return person;
