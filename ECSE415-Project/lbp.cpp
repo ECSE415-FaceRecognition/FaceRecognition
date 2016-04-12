@@ -23,7 +23,7 @@ Mat computeLBP(const Mat input);
 Mat computeImageLBP(const Mat input, int patchNumber);
 vector<Mat> getSpatialPyramidHistogram(const Mat input, int levels);
 
-void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<LBPData>> &histograms, int levels) {
+void lbp_train(std::vector<std::vector<std::string> > const& people, std::vector<std::vector<LBPData> > &histograms, int levels) {
 	/* train */
 	for (unsigned int i=0; i < people.size(); i++) {
 		std::vector<LBPData> each_person;
@@ -48,7 +48,7 @@ void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<
 	}
 }
 
-string lbp_test(vector<Mat> test_person, vector<string> const& people, vector<vector<LBPData>> &histograms, int levels) {	
+string lbp_test(vector<Mat> test_person, vector<string> const& people, vector<vector<LBPData> > &histograms, int levels) {	
 	
 	/* person 1 */
 	double best = std::numeric_limits<double>::max();
@@ -90,9 +90,9 @@ string lbp_test(vector<Mat> test_person, vector<string> const& people, vector<ve
 
 //functions by Linus
 //access HPID by pose - return path of images and annotations based on tilt and pan angle -- 1st vector = image, 2nd vector = annotations
-vector<vector<string>> get_image_Path_hpid(string tilt, string pan){
+vector<vector<string> > get_image_Path_hpid(string tilt, string pan){
 	//define variables
-	vector<vector<string>> output(2);
+	vector<vector<string> > output(2);
 	vector <string> names;
 	vector <string> annotation;
 	//define filename looking for
@@ -141,7 +141,7 @@ vector<vector<string>> get_image_Path_hpid(string tilt, string pan){
 vector <Rect> get_Rect_Image_hpid(string tilt, string pan){
 	vector <Rect> output;
 	//get Path of image files
-	vector<vector<string>> imagePath = get_image_Path_hpid(tilt, pan);
+	vector<vector<string> > imagePath = get_image_Path_hpid(tilt, pan);
 
 	//iterate through every name
 	for (unsigned int i = 0; i < imagePath[1].size(); i++){
@@ -189,7 +189,7 @@ vector <Mat> get_Image_hpid(string tilt, string pan){
 
 	vector <Mat> output;
 	//get Path of image files
-	vector<vector<string>> imagePath = get_image_Path_hpid(tilt, pan);
+	vector<vector<string> > imagePath = get_image_Path_hpid(tilt, pan);
 
 	//iterate through every name
 	for (unsigned int i = 0; i < imagePath[0].size(); i++){
@@ -254,13 +254,13 @@ Mat displayPoseImages(int id, int series){
 }
 
 //get array of size: 21 poses x # of images containing all training images mapped into coarse pose groups
-vector <vector<Mat>> getPoseEstimationTrainImages(){
+vector <vector<Mat> > getPoseEstimationTrainImages(){
 	//create pose estimation training array
-	vector <vector<Mat>> poseTrainingImages;
+	vector <vector<Mat> > poseTrainingImages;
 
 	//define tilt and pan to map poses into coarse pose classes
-	vector <vector<int>> tilt(3);
-	vector <vector<int>> pan(7);
+	vector <vector<int> > tilt(3);
+	vector <vector<int> > pan(7);
 	tilt[0] = { 60, 70 };
 	tilt[1] = { 80, 90, 100 };
 	tilt[2] = { 110, 120 };
@@ -313,12 +313,12 @@ vector <vector<Mat>> getPoseEstimationTrainImages(){
 }
 
 //get array of size: 21 poses x # of images containing all testing images mapped into coarse pose groups
-vector <vector<Mat>> getPoseEstimationTestingImages(){
+vector <vector<Mat> > getPoseEstimationTestingImages(){
 	//create pose estimation testing array
-	vector <vector<Mat>> poseTestingImages;
+	vector <vector<Mat> > poseTestingImages;
 
 	//define tilt and pan to map poses into coarse pose classes
-	vector <vector<string>> tilt(3);
+	vector <vector<string> > tilt(3);
 	tilt[0] = { "-30" };
 	tilt[1] = { "-15", "+0", "+15" };
 	tilt[2] = { "+30" };
@@ -498,13 +498,13 @@ Mat getLBPConfusionMatrix(int levels){
 	levels = levels + 1;
 
 	//create pose Estimation training dataset
-	vector <vector<Mat>> poseEstimationTrainingImages = getPoseEstimationTrainImages();
+	vector <vector<Mat> > poseEstimationTrainingImages = getPoseEstimationTrainImages();
 
 	//create pose Estimation testing dataset
-	vector <vector<Mat>> poseEstimationTestingImages = getPoseEstimationTestingImages();
+	vector <vector<Mat> > poseEstimationTestingImages = getPoseEstimationTestingImages();
 	cout << "All images loaded! \n";
 	//create LBP spatial pyramid histograms for all training images
-	vector <vector<vector<Mat>>> trainingHistograms(21);
+	vector <vector<vector<Mat> >> trainingHistograms(21);
 	//run through all images in the 21 poses and create histogram	
 	for (unsigned int i = 0; i < 21; i++){
 		//for (unsigned int j = 0; j < poseEstimationTrainingImages[i].size(); j++){
@@ -515,7 +515,7 @@ Mat getLBPConfusionMatrix(int levels){
 	}
 	cout << "Training Histogram DONE! \n";
 	//create LBP spatial pyramid histograms for all testing images
-	vector <vector<vector<Mat>>> testingHistograms(21);
+	vector <vector<vector<Mat> >> testingHistograms(21);
 	//run through all images in the 21 poses and create histogram	
 	for (unsigned int i = 0; i < 21; i++){
 		//for (unsigned int j = 0; j < poseEstimationTestingImages[i].size(); j++){

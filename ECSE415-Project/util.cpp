@@ -32,8 +32,8 @@ string get_image_qmul(string person, int tilt, int pose) {
 	return s.str();
 }
 
-vector<vector<string>> open_all_qmul_by_person(vector<string> people) {
-	vector<vector<string>> names;
+vector<vector<string> > open_all_qmul_by_person(vector<string> people) {
+	vector<vector<string> > names;
 	for (int person=0; person<people.size(); person++) {
 		vector<string> tmp;
 		for (int tilt=60; tilt<=120; tilt += 10) {
@@ -46,8 +46,8 @@ vector<vector<string>> open_all_qmul_by_person(vector<string> people) {
 	return names;
 }
 
-vector<vector<string>> open_all_qmul_by_pose(vector<string> people) {
-	vector<vector<string>> poses;
+vector<vector<string> > open_all_qmul_by_pose(vector<string> people) {
+	vector<vector<string> > poses;
 	for (int pose=0; pose <= 180; pose += 10) {
 		std::cout << pose << std::endl;
 		vector<string> tmp;

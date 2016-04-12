@@ -11,5 +11,5 @@ struct LBPData {
 	std::string name;
 };
 
-void lbp_train(std::vector<std::vector<std::string>> const& people, std::vector<std::vector<LBPData>> &histograms, int levels);
-std::string lbp_test(std::vector<cv::Mat> test_person, std::vector<std::string> const& people, std::vector<std::vector<LBPData>> &histograms, int levels);
+void lbp_train(std::vector<std::vector<std::string> > const& people, std::vector<std::vector<LBPData> > &histograms, int levels);
+std::string lbp_test(std::vector<cv::Mat> test_person, std::vector<std::string> const& people, std::vector<std::vector<LBPData> > &histograms, int levels);

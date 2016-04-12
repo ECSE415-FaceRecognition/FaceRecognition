@@ -15,14 +15,11 @@
 // allow numeric limits to work
 #undef max
 
-const int NUM_FOLDS = 7;
-const int MAX_LEVELS = 6;
-
 void do_lbp_face_recognition(std::vector<std::string> const& people);
-void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string>> &folds);
+void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string> > &folds);
 void qmul_all_images_of_person(std::string person);
 
-void main()
+int main()
 {
 	//load image and set directory - just for testing
 	tinydir_dir dir;
@@ -32,15 +29,16 @@ void main()
 
 	do_lbp_face_recognition(people);
 
+    return 0;
 }
 
 void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 	/* N people by X images per person */
-	std::vector<std::vector<LBPData>> histograms;
+	std::vector<std::vector<LBPData> > histograms;
 
-	std::vector<std::vector<cv::string>> image_names = open_all_qmul_by_person(people_tmp);
-	std::vector<std::vector<LBPData>> folds;
+	std::vector<std::vector<cv::string> > image_names = open_all_qmul_by_person(people_tmp);
+	std::vector<std::vector<LBPData> > folds;
 	//image_names.resize(10);
 	for (auto &image : image_names) {
 		image.resize(10);
@@ -59,7 +57,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 		seven_fold_cv(histograms[i], folds);
 	}
 
-	std::vector<std::vector<LBPData>> training_images;
+	std::vector<std::vector<LBPData> > training_images;
 	std::vector<LBPData> testing_images;
 	
 	for (int level = 1; level <= MAX_LEVELS; level++) {
