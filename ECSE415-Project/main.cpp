@@ -20,7 +20,7 @@ void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv:
 void qmul_all_images_of_person(std::string person);
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp);
-double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms);
+double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData test);
 
 /* logging */
 std::ofstream lbp_face_log;
@@ -56,18 +56,28 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
     /* open a file for logging */
 	lbp_face_log.open("lbp_face_log.txt");
 
+
     /* shrink dataset */
     image_names.resize(5);
 
+
     for (auto &image : image_names) {
-        image.resize(5);
+        image.resize(6);
     }
 
 	/* get lbp histrograms of all images.
      * when needed, simply pass a copy to the data 
      */
 	lbp_train(image_names, histograms, MAX_LEVELS);
-    do_lbp_prob_match(histograms);
+
+    std::vector<LBPData> testing_images;
+    for (auto &person : histograms) {
+        testing_images.push_back(person[5]);
+        person.resize(5);
+    }
+
+
+    do_lbp_prob_match(histograms, testing_images[0]);
 
     return;
 
@@ -105,9 +115,7 @@ void qmul_all_images_of_person(std::string person) {
 
 }
 
-double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
-
-    int i = 0;
+double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData test ) {
 
     int sz = histograms[0].size();
     std::vector<ProbData> gaussians;
@@ -134,16 +142,17 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
         gaussians.push_back(tmp);
     }
 
-    std::vector<cv::Mat> test;
+    std::vector<cv::Mat> test_vector;
     ProbData tmp;
-    tmp.name = "testing size";
+
     cv::Mat person;
-    for (auto &level : histograms[0][0].hist) {
+    tmp.name = test.name;
+    for (auto &level : test.hist) {
         person.push_back(level);
     }
 
-    test.push_back(person);
-    cv::calcCovarMatrix(test, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+    test_vector.push_back(person);
+    cv::calcCovarMatrix(test_vector, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
 
     std::cout << "size of covar from one histogram" << tmp.covar.size() << std::endl;
     std::cout << "size of mean from one histogram" << tmp.mean.size() << std::endl;
@@ -160,6 +169,7 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
             std::cout << gaussian.name << " has a strange covar size" << std::endl;
         }
     }
+    
 
     // TODO diagonalize a matrix ?? http://cs229.stanford.edu/section/gaussians.pdf ??
     // TODO compute gaussian difference
@@ -168,9 +178,29 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
      * max(p(I|s)) => probability of I (a person) given s (a multivariate gaussian of a testing
      * image)
      * 
-     * => how to get p(s|I) using covar and men
+     * => how to get p(s|I) using covar and mean? (
+     * https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Non-degenerate_case)
+     */
+
+    for (int i=0; i < gaussians.size(); i++) {
+        cv::Mat diff = (tmp.mean - gaussians[i].mean);
+        cv::Mat exponent = -0.5 * diff.t() * gaussians[i].covar.inv(cv::DECOMP_SVD) * diff;
+
+        cv::Mat result;
+        exponent = cv::abs(exponent);
+        cv::exp(exponent, result);
+
+
+        std::cout << exponent << " for " << gaussians[i].name  <<  std::endl;
+        std::cout << result << " for " << gaussians[i].name  <<  std::endl;
+    }
+
+    std::cout << "actual: " << tmp.name << std::endl;
+
+    /*
      * => use same method to get p(s) from testing image
      * p(I|s) = p(s|I) / p(s)
+     * p(I|s) = p(s|I) / sum(...)
      */
 
 }

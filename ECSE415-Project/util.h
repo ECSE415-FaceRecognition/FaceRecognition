@@ -8,7 +8,7 @@ const char POSE_DIR[] = "HeadPoseImageDatabase/";
 #include <vector>
 
 const int NUM_FOLDS = 7;
-const int MAX_LEVELS = 6;
+const int MAX_LEVELS = 2;
 
 std::string get_image_hpid(int id, int serie, int number, std::string tilt, std::string pan);
 std::string get_image_qmul(std::string person, int tilt, int pose);
