@@ -1,7 +1,7 @@
 #include "eigenfaces.h"
 
 Mat get_mean_image(vector<Mat> faces);
-void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val);
+void generate_ef(Mat &D, Mat &eigen_vec, Mat &eigen_val);
 Mat generate_flat_diff(vector<Mat> faces);
 //Mat train(vector<Mat> faces);
 //Mat test(Mat candidate);
@@ -9,10 +9,10 @@ void sort_mat(const Mat &input, Mat &sorted, const Mat &indices);
 
 Mat mean_face;
 Mat coefs;
-Mat eigen_faces;
+//Mat eigen_faces;
 
 
-void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
+void generate_ef(Mat &D, Mat &eigen_vec, Mat &eigen_val) {
 
 	//cout << D << endl;
 	cout << "size of D " << D.size() << endl;
@@ -104,7 +104,7 @@ Mat generate_flat_diff(vector<Mat> faces) {
 
 Mat train(vector<Mat> faces) {
 	//cols are resulting projection
-	Mat eigen_val;
+	Mat eigen_val, eigen_faces;
 	Mat D = generate_flat_diff(faces);
 	generate_ef(D, eigen_faces, eigen_val);
 
@@ -123,14 +123,14 @@ Mat train(vector<Mat> faces) {
 
 
 	Mat face;
-	eigen_faces.col(0).copyTo(face);
-	face = face.reshape(1, 100);
-	face.convertTo(face, CV_64FC1);
+	//eigen_faces.col(0).copyTo(face);
+	//face = face.reshape(1, 100);
+	//face.convertTo(face, CV_64FC1);
 
-	imshow("face0: eigenspace", face);
-	waitKey(1);
+	//imshow("face0: eigenspace", face);
+	//aitKey(1);
 
-	return coefs;
+	return eigen_faces;
 }
 
 Mat get_mean_image(vector<Mat> faces) {
@@ -145,7 +145,7 @@ Mat get_mean_image(vector<Mat> faces) {
 	return result;
 }
 
-int test(Mat candidate){
+int test(Mat &candidate, Mat &eigen_faces){
 
 	Mat flat_candidate;
 	namedWindow("candidate", WINDOW_AUTOSIZE);   // Create a window for display.
@@ -171,7 +171,7 @@ int test(Mat candidate){
 	for (int i = 0; i < eigen_faces.cols; i++) {
 			cout << "test.size = " << flat_candidate.size() << endl;
 			cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
-			test_coefs.at<double>(i,1) = flat_candidate.dot(eigen_faces.col(i));
+			test_coefs.at<double>(1, i) = flat_candidate.dot(eigen_faces.col(i));
 		}
 	//test_coefs is indexed as face,eigen_face
 
@@ -181,13 +181,15 @@ int test(Mat candidate){
 	int min = INT_MAX;
 	int min_id = -1;
 	for (int i = 0; i < coefs.rows; i++) {
-		if (mean(test_coefs - coefs.row(i))[0] < min) {
-			min = mean(test_coefs - coefs.row(i))[0];
+		if (norm(test_coefs, coefs.row(i),NORM_L2) < min) {
+			min = norm(test_coefs,coefs.row(i), NORM_L2);
 			min_id = i;
 		}
 	}
-	if (min_id == -1) _exit(0);
-
+	if (min_id == -1) {
+		std::cout << "Error" << std::endl;
+		_exit(0);
+	}
 
 
 	return min_id;

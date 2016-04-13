@@ -91,7 +91,7 @@ void main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 2; i++) {
+	for (int i = 0; i < 3; i++) {
 		
 		std::string name = get_image_qmul(people[i], 120, 90);
 		std::string name2 = get_image_qmul(people[i], 110, 90);
@@ -104,10 +104,10 @@ void main()
 		faces.push_back(im);
 		faces.push_back(im2);
 
-		train(faces);
+		//train(faces);
 		//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 	}
-
+	Mat eigen = train(faces);
 	/* testing */
 	int test_person = 0;
 
@@ -118,7 +118,7 @@ void main()
 
 	//convert to greyScale
 	cv::cvtColor(im, im, CV_RGB2GRAY);
-	int result = test(im);
+	int result = test(im, eigen);
 
 	imshow("test_im", im);
 	waitKey(1);

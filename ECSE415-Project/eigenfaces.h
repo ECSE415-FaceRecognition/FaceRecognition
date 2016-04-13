@@ -9,6 +9,6 @@ using namespace std;
 using namespace cv;
 
 Mat train(vector<Mat> faces);
-int test(Mat candidate);
+int test(Mat &candidate, Mat &eigen_faces);
 
 #endif
