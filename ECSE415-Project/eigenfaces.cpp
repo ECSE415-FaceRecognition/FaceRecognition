@@ -1,6 +1,6 @@
 #include "eigenfaces.h"
 
-Mat get_mean_image(vector<Mat> faces);
+void get_mean_image(vector<Mat> faces);
 void generate_ef(Mat &D, Mat &eigen_vec, Mat &eigen_val);
 Mat generate_flat_diff(vector<Mat> faces);
 //Mat train(vector<Mat> faces);
@@ -77,28 +77,36 @@ Mat generate_flat_diff(vector<Mat> faces) {
 	img_h = faces[0].size().height;
 	img_w = faces[0].size().width;
 	Mat D = Mat::zeros(img_h*img_w, size_in, CV_64FC1);
-	mean_face = get_mean_image(faces);
-	mean_face.convertTo(mean_face, CV_8U);
-	imshow("test mean face", mean_face);
-	mean_face.convertTo(mean_face, CV_64FC1);
+	get_mean_image(faces);
+
+	//mean_face.convertTo(mean_face, CV_8U);
+	/*imshow("test mean face", mean_face);
+	waitKey(1);*/
+	//mean_face.convertTo(mean_face, CV_64FC1);
 
 	vector<Mat> diff_faces;
 	for (int i = 0; i < faces.size(); i++) {
 		Mat face;
+		Mat diff;
 		faces[i].convertTo(face, CV_64FC1);
-		diff_faces.push_back(face - mean_face);
+		diff = face - mean_face;
+		diff_faces.push_back(diff);
 	}
 
 	int size = diff_faces.size();
 
 	cout << "size in is " << size << endl;
-	for (int i = 0; i < size_in; i++) {
-		for (int j = 0; j < img_h; j++) {
+	for (int i = 0; i < size; i++) {
+		diff_faces[i] = diff_faces[i].reshape(1, 1).t();
+		cout << "diff_faces[i] size = " << diff_faces[i].size() << endl;
+		diff_faces[i].copyTo(D.col(i));
+		/*for (int j = 0; j < img_h; j++) {
 			for (int k = 0; k < img_w; k++) {
-				D.at<double>(j*img_w + k, i) = diff_faces[0].at<double>(j, k);
+				D.at<double>(j*img_w + k, i) = diff_faces[i].at<double>(j, k);
 			}
-		}
+		}*/
 	}
+	cout << "D size = " << D.size() << endl;
 	return D;
 }
 
@@ -114,15 +122,15 @@ Mat train(vector<Mat> faces) {
 	//cout << temp_ev.size() << endl;
 	for (int i = 0; i < faces.size(); i++) {
 		for (int j = 0; j < faces.size(); j++) {
-			cout << "D.col(j) size = " << D.col(j).size() << endl;
-			cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
+			//cout << "D.col(j) size = " << D.col(j).size() << endl;
+			//cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
 			coefs.at<double>(i, j) = D.col(j).dot(eigen_faces.col(i));
 		}
 	}
 	//coefs is indexed eigen_face,face.
 
 
-	Mat face;
+	//Mat face;
 	//eigen_faces.col(0).copyTo(face);
 	//face = face.reshape(1, 100);
 	//face.convertTo(face, CV_64FC1);
@@ -133,24 +141,25 @@ Mat train(vector<Mat> faces) {
 	return eigen_faces;
 }
 
-Mat get_mean_image(vector<Mat> faces) {
-	Mat conv;
-	Mat result = Mat::zeros(faces[0].size().height, faces[0].size().width, CV_64FC1);
+void get_mean_image(vector<Mat> faces) {
+	
+	mean_face = Mat::zeros(faces[0].size().height, faces[0].size().width, CV_64FC1);
 	for (int i = 0; i < faces.size(); i++) {
+		Mat conv;
 		faces[i].convertTo(conv, CV_64FC1);
-		result += conv;
+		mean_face += conv;
 	}
-	result *= (1.0 / faces.size());
-	cout << "size of result = " << result.size() << endl;
-	return result;
+	mean_face *= (1.0 / faces.size());
+	cout << "size of result = " << mean_face.size() << endl;
+	//return result;
 }
 
 int test(Mat &candidate, Mat &eigen_faces){
 
 	Mat flat_candidate;
-	namedWindow("candidate", WINDOW_AUTOSIZE);   // Create a window for display.
-	imshow("candidate", candidate);
-	cv::waitKey(1);
+	//namedWindow("candidate", WINDOW_AUTOSIZE);   // Create a window for display.
+	//imshow("candidate", candidate);
+	//cv::waitKey(1);
 
 	candidate.convertTo(candidate, CV_64FC1);
 	flat_candidate = candidate - mean_face;
@@ -165,13 +174,13 @@ int test(Mat &candidate, Mat &eigen_faces){
 	//cv::waitKey(1);
 
 	//Now Project
-	Mat test_coefs = Mat::zeros(1, coefs.cols, CV_64F);
+	Mat test_coefs = Mat::zeros(coefs.rows, 1, CV_64F);
 	cout << "eigen_faces type = " << eigen_faces.type() << endl;
 	cout << "fc type = " << flat_candidate.type() << endl;
 	for (int i = 0; i < eigen_faces.cols; i++) {
-			cout << "test.size = " << flat_candidate.size() << endl;
-			cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
-			test_coefs.at<double>(1, i) = flat_candidate.dot(eigen_faces.col(i));
+			//cout << "test.size = " << flat_candidate.size() << endl;
+			//cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
+			test_coefs.at<double>(i,1) = flat_candidate.dot(eigen_faces.col(i));
 		}
 	//test_coefs is indexed as face,eigen_face
 
@@ -180,15 +189,15 @@ int test(Mat &candidate, Mat &eigen_faces){
 	
 	int min = INT_MAX;
 	int min_id = -1;
-	for (int i = 0; i < coefs.rows; i++) {
-		if (norm(test_coefs, coefs.row(i),NORM_L2) < min) {
-			min = norm(test_coefs,coefs.row(i), NORM_L2);
+	for (int i = 0; i < coefs.cols; i++) {
+		if (norm(test_coefs, coefs.col(i), NORM_L2) < min) {
+			min = norm(test_coefs, coefs.col(i), NORM_L2);
 			min_id = i;
 		}
 	}
 	if (min_id == -1) {
 		std::cout << "Error" << std::endl;
-		_exit(0);
+		
 	}
 
 

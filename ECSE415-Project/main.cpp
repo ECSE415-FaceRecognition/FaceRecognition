@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+
 #include <opencv2/opencv.hpp>
 
 #include "eigenfaces.h"
@@ -59,13 +60,13 @@ void main()
 
 	std::vector<std::string> poses = open_all_poses();
 
-	for (int i = 0; i < 100; i++) {
+	/*for (int i = 0; i < 100; i++) {
 		int index = rand() % poses.size();
 		cv::Mat im = cv::imread(poses[index]);
 		if (im.empty()) {
 			std::cout << "error at: " << poses[index] << std::endl;
 		}
-	}
+	}*/
 	//imshow(pose_name , img);
 	//cv::waitKey();
 	tinydir_dir dir;
@@ -91,13 +92,22 @@ void main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 3; i++) {
-		
+	for (int i = 0; i < 14; i++) {
+		if (i == 12) {
+			continue;
+		}
 		std::string name = get_image_qmul(people[i], 120, 90);
 		std::string name2 = get_image_qmul(people[i], 110, 90);
 		// open image
 		cv::Mat im = cv::imread(name);
 		cv::Mat im2 = cv::imread(name2);
+
+		/*os << "test_" << i << ".ras" << endl;
+		os2 << "test_" << i << "_2.ras" << endl;
+		imshow(os.str(), im);
+		waitKey(1);
+		imshow(os2.str(), im2);
+		waitKey(1);*/
 		//convert to greyScale
 		cv::cvtColor(im, im, CV_RGB2GRAY);
 		cv::cvtColor(im2, im2, CV_RGB2GRAY);
@@ -111,7 +121,7 @@ void main()
 	/* testing */
 	int test_person = 0;
 
-	std::string name = get_image_qmul(people[test_person], 100, 90);
+	std::string name = get_image_qmul(people[test_person], 110, 90);
 	std::cout << "testing: " << name << std::endl;
 	// open image
 	cv::Mat im = cv::imread(name);
@@ -120,8 +130,8 @@ void main()
 	cv::cvtColor(im, im, CV_RGB2GRAY);
 	int result = test(im, eigen);
 
-	imshow("test_im", im);
-	waitKey(1);
+	//imshow("test_im", im);
+	//waitKey(1);
 	imshow("actual", faces[result]);
 	waitKey(1);
 
