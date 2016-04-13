@@ -62,7 +62,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 
     for (auto &image : image_names) {
-        image.resize(6);
+        image.resize(60);
     }
 
 	/* get lbp histrograms of all images.
@@ -72,12 +72,13 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
     std::vector<LBPData> testing_images;
     for (auto &person : histograms) {
-        testing_images.push_back(person[5]);
-        person.resize(5);
+        testing_images.push_back(person.back());
+        person.pop_back();
     }
 
-
-    do_lbp_prob_match(histograms, testing_images[0]);
+    for (auto &test_person : testing_images) {
+        do_lbp_prob_match(histograms, test_person);
+    }
 
     return;
 
@@ -151,13 +152,9 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData
         person.push_back(level);
     }
 
-    test_vector.push_back(person);
-    cv::calcCovarMatrix(test_vector, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+    std::cout << "size of histogram" << person.size() << std::endl;
 
-    std::cout << "size of covar from one histogram" << tmp.covar.size() << std::endl;
-    std::cout << "size of mean from one histogram" << tmp.mean.size() << std::endl;
-
-    gaussians.push_back(tmp);
+//    gaussians.push_back(tmp);
 
     auto sz_covar = gaussians[0].covar.size();
     auto sz_mean = gaussians[0].mean.size();
@@ -182,20 +179,24 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData
      * https://en.wikipedia.org/wiki/Multivariate_normal_distribution#Non-degenerate_case)
      */
 
+    cv::Mat best; std::string best_name;
     for (int i=0; i < gaussians.size(); i++) {
-        cv::Mat diff = (tmp.mean - gaussians[i].mean);
-        cv::Mat exponent = -0.5 * diff.t() * gaussians[i].covar.inv(cv::DECOMP_SVD) * diff;
+        cv::Mat diff = (person - gaussians[i].mean);
+        cv::Mat exponent = diff.t() * gaussians[i].covar.inv(cv::DECOMP_SVD) * diff;
 
-        cv::Mat result;
         exponent = cv::abs(exponent);
-        cv::exp(exponent, result);
 
+        if (best.empty() || (exponent.at<double>(0, 0) < best.at<double>(0, 0))) {
+            best = exponent;
+            best_name = gaussians[i].name;
+        }
 
-        std::cout << exponent << " for " << gaussians[i].name  <<  std::endl;
-        std::cout << result << " for " << gaussians[i].name  <<  std::endl;
+        std::cout << "exponent is " <<  exponent << " for " << gaussians[i].name  <<  std::endl;
+        //std::cout << "result is   " <<  result << " for " << gaussians[i].name  <<  std::endl;
     }
 
     std::cout << "actual: " << tmp.name << std::endl;
+    std::cout << "guess: " << best_name << std::endl;
 
     /*
      * => use same method to get p(s) from testing image
