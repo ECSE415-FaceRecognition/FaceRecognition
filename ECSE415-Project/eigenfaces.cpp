@@ -3,8 +3,14 @@
 Mat get_mean_image(vector<Mat> faces);
 void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val);
 Mat generate_flat_diff(vector<Mat> faces);
-Mat train(vector<Mat> faces);
+//Mat train(vector<Mat> faces);
+//Mat test(Mat candidate);
 void sort_mat(const Mat &input, Mat &sorted, const Mat &indices);
+
+Mat mean_face;
+Mat coefs;
+Mat eigen_faces;
+
 
 void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 
@@ -44,16 +50,16 @@ void generate_ef(Mat D, Mat &eigen_vec, Mat &eigen_val) {
 		_exit(0);
 	}
 	
-	eigen_vec_tmp = D*eigen_vec_tmp;
-	cout << "eigen_vec_tmp = " << eigen_vec_tmp.size() << endl;
+	eigen_vec = D*eigen_vec_tmp;
+	cout << "eigen_vec = " << eigen_vec.size() << endl;
 
 	//Mat source = Mat::eye(eigen_vec.size(), CV_64FC1);
-	Mat dst;
+	/*Mat dst;
 	cv::sortIdx(eigen_val, dst, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
 	cout << dst.size() << endl;
 	cv::sort(eigen_val, eigen_val, CV_SORT_DESCENDING + CV_SORT_EVERY_COLUMN);
 	sort_mat(eigen_vec_tmp, eigen_vec, dst);
-	cout << "size of eigen_vec = " << eigen_vec.size() << endl;
+	cout << "size of eigen_vec = " << eigen_vec.size() << endl;*/
 	//return DD_t;
 }
 
@@ -71,7 +77,11 @@ Mat generate_flat_diff(vector<Mat> faces) {
 	img_h = faces[0].size().height;
 	img_w = faces[0].size().width;
 	Mat D = Mat::zeros(img_h*img_w, size_in, CV_64FC1);
-	Mat mean_face = get_mean_image(faces);
+	mean_face = get_mean_image(faces);
+	mean_face.convertTo(mean_face, CV_8U);
+	imshow("test mean face", mean_face);
+	mean_face.convertTo(mean_face, CV_64FC1);
+
 	vector<Mat> diff_faces;
 	for (int i = 0; i < faces.size(); i++) {
 		Mat face;
@@ -94,11 +104,11 @@ Mat generate_flat_diff(vector<Mat> faces) {
 
 Mat train(vector<Mat> faces) {
 	//cols are resulting projection
-	Mat eigen_val, eigen_faces;
+	Mat eigen_val;
 	Mat D = generate_flat_diff(faces);
 	generate_ef(D, eigen_faces, eigen_val);
 
-	Mat coefs = Mat::zeros(eigen_faces.size(), CV_64F);
+	coefs = Mat::zeros(faces.size(), faces.size(), CV_64F);
 	//Mat temp = ((int)faces.size(), (int)faces.size(), CV_64FC1, D);
 	//Mat temp_ev = eigen_faces.reshape(1, 1);
 	//cout << temp_ev.size() << endl;
@@ -109,13 +119,23 @@ Mat train(vector<Mat> faces) {
 			coefs.at<double>(i, j) = D.col(j).dot(eigen_faces.col(i));
 		}
 	}
+	//coefs is indexed eigen_face,face.
+
+
+	Mat face;
+	eigen_faces.col(0).copyTo(face);
+	face = face.reshape(1, 100);
+	face.convertTo(face, CV_64FC1);
+
+	imshow("face0: eigenspace", face);
+	waitKey(1);
+
 	return coefs;
 }
 
 Mat get_mean_image(vector<Mat> faces) {
 	Mat conv;
 	Mat result = Mat::zeros(faces[0].size().height, faces[0].size().width, CV_64FC1);
-
 	for (int i = 0; i < faces.size(); i++) {
 		faces[i].convertTo(conv, CV_64FC1);
 		result += conv;
@@ -123,4 +143,52 @@ Mat get_mean_image(vector<Mat> faces) {
 	result *= (1.0 / faces.size());
 	cout << "size of result = " << result.size() << endl;
 	return result;
+}
+
+int test(Mat candidate){
+
+	Mat flat_candidate;
+	namedWindow("candidate", WINDOW_AUTOSIZE);   // Create a window for display.
+	imshow("candidate", candidate);
+	cv::waitKey(1);
+
+	candidate.convertTo(candidate, CV_64FC1);
+	flat_candidate = candidate - mean_face;
+	flat_candidate = flat_candidate.reshape(1, 1).t(); //Flatten the input candidate image
+	//Mat flat_mean = mean_face.reshape(1, 1).t();
+	
+	cout << "fc size = " << flat_candidate.size() << endl;
+	
+	//flat_candidate = flat_candidate.reshape(1, 100);
+	//namedWindow("Display diff face", WINDOW_AUTOSIZE);   // Create a window for display.
+	//imshow("Display diff face", flat_candidate);
+	//cv::waitKey(1);
+
+	//Now Project
+	Mat test_coefs = Mat::zeros(1, coefs.cols, CV_64F);
+	cout << "eigen_faces type = " << eigen_faces.type() << endl;
+	cout << "fc type = " << flat_candidate.type() << endl;
+	for (int i = 0; i < eigen_faces.cols; i++) {
+			cout << "test.size = " << flat_candidate.size() << endl;
+			cout << "eigen_faces.col(i) size = " << eigen_faces.col(i).size() << endl;
+			test_coefs.at<double>(i,1) = flat_candidate.dot(eigen_faces.col(i));
+		}
+	//test_coefs is indexed as face,eigen_face
+
+	cout << "coefs size = " << coefs.size() << endl;
+	cout << "test_coefs size = " << test_coefs.size() << endl;
+	
+	int min = INT_MAX;
+	int min_id = -1;
+	for (int i = 0; i < coefs.rows; i++) {
+		if (mean(test_coefs - coefs.row(i))[0] < min) {
+			min = mean(test_coefs - coefs.row(i))[0];
+			min_id = i;
+		}
+	}
+	if (min_id == -1) _exit(0);
+
+
+
+	return min_id;
 }

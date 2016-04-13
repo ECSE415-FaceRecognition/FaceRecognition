@@ -105,21 +105,28 @@ void main()
 		faces.push_back(im2);
 
 		train(faces);
-		faces.clear();
 		//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 	}
 
 	/* testing */
-	int test_person = 8;
+	int test_person = 0;
 
-	std::string name = get_image_qmul(people[test_person], 110, 90);
+	std::string name = get_image_qmul(people[test_person], 100, 90);
 	std::cout << "testing: " << name << std::endl;
 	// open image
 	cv::Mat im = cv::imread(name);
 
 	//convert to greyScale
 	cv::cvtColor(im, im, CV_RGB2GRAY);
-	
+	int result = test(im);
+
+	imshow("test_im", im);
+	waitKey(1);
+	imshow("actual", faces[result]);
+	waitKey(1);
+
+	faces.clear();
+
 	//compute spatial pyramid histogram for number of level
 	//tests.push_back(getSpatialPyramidHistogram(im, 1));
 
