@@ -20,9 +20,17 @@ void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv:
 void qmul_all_images_of_person(std::string person);
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp);
+double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms);
 
 /* logging */
 std::ofstream lbp_face_log;
+
+// data used for probability comparisons
+struct ProbData {
+    cv::Mat mean;
+    cv::Mat covar;
+    std::string name;
+};
 
 int main()
 {
@@ -48,10 +56,20 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
     /* open a file for logging */
 	lbp_face_log.open("lbp_face_log.txt");
 
+    /* shrink dataset */
+    image_names.resize(10);
+
+    for (auto &image : image_names) {
+        image.resize(5);
+    }
+
 	/* get lbp histrograms of all images.
      * when needed, simply pass a copy to the data 
      */
 	lbp_train(image_names, histograms, MAX_LEVELS);
+    do_lbp_prob_match(histograms);
+
+    return;
 
 	/* split into 7 training sets, preserving the order of people */
 	folds.resize(NUM_FOLDS);
@@ -63,7 +81,6 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
     /* calculate LBP over levels up to MAX_LEVELS */
 	for (int level = 1; level <= MAX_LEVELS; level++) {
         double average_rate = do_lbp_chisq_match(folds, level, people_tmp);
-
 		std::cout << "Overall rate was " << average_rate / NUM_FOLDS << " for level " << level << std::endl;
 	}
 	system("pause");
@@ -88,6 +105,35 @@ void qmul_all_images_of_person(std::string person) {
 
 }
 
+double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
+
+    int i = 0;
+
+    int sz = histograms[0].size();
+    std::vector<ProbData> gaussians;
+    std::vector<cv::Mat> all_histogram_of_person;
+    for (auto &person : histograms) {
+        for (auto &image : person) {
+            cv::Mat tmp;
+            for (auto &level_hist : image.hist) {
+                tmp.push_back(level_hist);
+            }
+            all_histogram_of_person.push_back(tmp);
+        }
+
+        ProbData tmp;
+        tmp.name = person[0].name;
+        // TODO compute 
+        cv::calcCovarMatrix(all_histogram_of_person, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+        gaussians.push_back(tmp);
+    }
+
+    for (auto &gaussian : gaussians) {
+        std::cout << "mean size: " << gaussian.mean.size() << std::endl;
+        std::cout << "covar size: " << gaussian.covar.size() << std::endl;
+    }
+
+}
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp) {
     /* set of folds to use for training */
