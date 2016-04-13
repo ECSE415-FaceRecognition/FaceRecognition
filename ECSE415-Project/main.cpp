@@ -57,7 +57,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	lbp_face_log.open("lbp_face_log.txt");
 
     /* shrink dataset */
-    image_names.resize(10);
+    image_names.resize(5);
 
     for (auto &image : image_names) {
         image.resize(5);
@@ -112,8 +112,12 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
     int sz = histograms[0].size();
     std::vector<ProbData> gaussians;
     std::vector<cv::Mat> all_histogram_of_person;
+    /* fill `gaussians with the covar and mean of all images of one person */
     for (auto &person : histograms) {
+        all_histogram_of_person.clear();
+        /* iterate through all images of a person */
         for (auto &image : person) {
+            // std::cout << image.name << std::endl;
             cv::Mat tmp;
             for (auto &level_hist : image.hist) {
                 tmp.push_back(level_hist);
@@ -121,17 +125,53 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms) {
             all_histogram_of_person.push_back(tmp);
         }
 
+        /* fill ProbData Struct */
         ProbData tmp;
         tmp.name = person[0].name;
-        // TODO compute 
         cv::calcCovarMatrix(all_histogram_of_person, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+
+        /* store covar and mean of this person */
         gaussians.push_back(tmp);
     }
 
-    for (auto &gaussian : gaussians) {
-        std::cout << "mean size: " << gaussian.mean.size() << std::endl;
-        std::cout << "covar size: " << gaussian.covar.size() << std::endl;
+    std::vector<cv::Mat> test;
+    ProbData tmp;
+    tmp.name = "testing size";
+    cv::Mat person;
+    for (auto &level : histograms[0][0].hist) {
+        person.push_back(level);
     }
+
+    test.push_back(person);
+    cv::calcCovarMatrix(test, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+
+    std::cout << "size of covar from one histogram" << tmp.covar.size() << std::endl;
+    std::cout << "size of mean from one histogram" << tmp.mean.size() << std::endl;
+
+    gaussians.push_back(tmp);
+
+    auto sz_covar = gaussians[0].covar.size();
+    auto sz_mean = gaussians[0].mean.size();
+    for (auto &gaussian : gaussians) {
+        if (gaussian.mean.size() != sz_mean) {
+            std::cout << gaussian.name << " has a strange mean size" << std::endl;
+        }
+        if (gaussian.covar.size() != sz_covar) {
+            std::cout << gaussian.name << " has a strange covar size" << std::endl;
+        }
+    }
+
+    // TODO diagonalize a matrix ?? http://cs229.stanford.edu/section/gaussians.pdf ??
+    // TODO compute gaussian difference
+    
+    /*
+     * max(p(I|s)) => probability of I (a person) given s (a multivariate gaussian of a testing
+     * image)
+     * 
+     * => how to get p(s|I) using covar and men
+     * => use same method to get p(s) from testing image
+     * p(I|s) = p(s|I) / p(s)
+     */
 
 }
 
