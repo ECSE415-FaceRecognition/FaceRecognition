@@ -65,6 +65,8 @@ vector<vector<string> > open_all_qmul_by_person(vector<string> people) {
 		}
 		names.push_back(tmp);
 	}
+	cout << "size of names = " << names.size() << endl;
+	cout << "size of namesnames = " << names[0].size() << endl;
 	return names;
 }
 
@@ -109,8 +111,8 @@ void main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 14; i++) {
-		for (int j = 0; j < images.size(); j++) {
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < images[0].size(); j++) {
 			if (i == 12) {
 				continue;
 			}
@@ -138,19 +140,22 @@ void main()
 	}
 	Mat eigen = train(faces);
 	/* testing */
-	int test_person = 0;
+	int test_person = 2;
 
-	std::string name = get_image_qmul(people[test_person], 110, 90);
+	std::string name = get_image_qmul(people[test_person], 60, 0);
 	std::cout << "testing: " << name << std::endl;
 	// open image
 	cv::Mat im = cv::imread(name);
 
 	//convert to greyScale
 	cv::cvtColor(im, im, CV_RGB2GRAY);
+	imshow("test_im", im);
+	waitKey(1);
 	int result = test(im, eigen);
-
-	//imshow("test_im", im);
-	//waitKey(1);
+	cout << "index = " << result << endl;
+	
+	//result.convertTo(result, CV_8UC1);
+	//cout << "size of final face = " << result.size() << endl;
 	imshow("actual", faces[result]);
 	waitKey(1);
 

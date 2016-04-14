@@ -73,6 +73,7 @@ void sort_mat(const Mat &input, Mat &sorted, const Mat &indices) {
 
 Mat generate_flat_diff(vector<Mat> faces) {
 	int size_in = faces.size();
+	cout << "number of faces = " << size_in << endl;
 	int img_h, img_w;
 	img_h = faces[0].size().height;
 	img_w = faces[0].size().width;
@@ -115,7 +116,7 @@ Mat train(vector<Mat> faces) {
 	Mat eigen_val, eigen_faces;
 	Mat D = generate_flat_diff(faces);
 	generate_ef(D, eigen_faces, eigen_val);
-
+	cout << "faces.size = " << faces.size() << endl;
 	coefs = Mat::zeros(faces.size(), faces.size(), CV_64F);
 	//Mat temp = ((int)faces.size(), (int)faces.size(), CV_64FC1, D);
 	//Mat temp_ev = eigen_faces.reshape(1, 1);
@@ -190,8 +191,8 @@ int test(Mat &candidate, Mat &eigen_faces){
 	int min = INT_MAX;
 	int min_id = -1;
 	for (int i = 0; i < coefs.cols; i++) {
-		if (norm(test_coefs, coefs.col(i), NORM_L2) < min) {
-			min = norm(test_coefs, coefs.col(i), NORM_L2);
+		if (abs(norm(test_coefs, coefs.col(i), NORM_L2)) < min) {
+			min = abs(norm(test_coefs, coefs.col(i), NORM_L2));
 			min_id = i;
 		}
 	}
@@ -200,6 +201,13 @@ int test(Mat &candidate, Mat &eigen_faces){
 		
 	}
 
-
+	/*Mat result;
+	eigen_faces.col(min_id).copyTo(result);
+	Mat check = test_coefs.t()*eigen_faces.t();
+	cout << "check size = " << check.size() << endl;
+	check = check.t();
+	check = check.reshape(1, 100);
+	cout << "check size = " << check.size() << endl;
+	check.convertTo(result,CV_8UC1);*/
 	return min_id;
 }
