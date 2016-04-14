@@ -54,6 +54,21 @@ std::vector<std::string> open_all_poses() {
 	return names;
 }
 
+vector<vector<string> > open_all_qmul_by_person(vector<string> people) {
+	vector<vector<string> > names;
+	for (int person = 0; person<people.size(); person++) {
+		vector<string> tmp;
+		for (int tilt = 60; tilt <= 120; tilt += 10) {
+			for (int pose = 0; pose <= 180; pose += 10) {
+				tmp.push_back(get_image_qmul(people[person], tilt, pose));
+			}
+		}
+		names.push_back(tmp);
+	}
+	return names;
+}
+
+
 void main()
 {
 	//load image and set directory - just for testing
@@ -90,32 +105,36 @@ void main()
 
 	tinydir_close(&dir);
 
+	vector<vector<string>> images = open_all_qmul_by_person(people);
+
 	vector<Mat> faces;
 	/* train */
 	for (int i = 0; i < 14; i++) {
-		if (i == 12) {
-			continue;
+		for (int j = 0; j < images.size(); j++) {
+			if (i == 12) {
+				continue;
+			}
+			std::string name = images[i][j];
+			//std::string name2 = images[i][j + 1];
+			// open image
+			cv::Mat im = cv::imread(name);
+			//cv::Mat im2 = cv::imread(name2);
+
+			/*os << "test_" << i << ".ras" << endl;
+			os2 << "test_" << i << "_2.ras" << endl;
+			imshow(os.str(), im);
+			waitKey(1);
+			imshow(os2.str(), im2);
+			waitKey(1);*/
+			//convert to greyScale
+			cv::cvtColor(im, im, CV_RGB2GRAY);
+			//cv::cvtColor(im2, im2, CV_RGB2GRAY);
+			faces.push_back(im);
+			//faces.push_back(im2);
+
+			//train(faces);
+			//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 		}
-		std::string name = get_image_qmul(people[i], 120, 90);
-		std::string name2 = get_image_qmul(people[i], 110, 90);
-		// open image
-		cv::Mat im = cv::imread(name);
-		cv::Mat im2 = cv::imread(name2);
-
-		/*os << "test_" << i << ".ras" << endl;
-		os2 << "test_" << i << "_2.ras" << endl;
-		imshow(os.str(), im);
-		waitKey(1);
-		imshow(os2.str(), im2);
-		waitKey(1);*/
-		//convert to greyScale
-		cv::cvtColor(im, im, CV_RGB2GRAY);
-		cv::cvtColor(im2, im2, CV_RGB2GRAY);
-		faces.push_back(im);
-		faces.push_back(im2);
-
-		//train(faces);
-		//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 	}
 	Mat eigen = train(faces);
 	/* testing */
