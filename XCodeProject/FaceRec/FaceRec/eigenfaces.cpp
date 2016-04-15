@@ -6,8 +6,9 @@ Mat generate_flat_diff(vector<Mat> faces);
 void sort_mat(const Mat &input, Mat &sorted, const Mat &indices);
 
 Mat mean_face;
-Mat coefs;
+Mat coeff;
 Mat eigenfaces;
+double num_eig = 20;
 
 Mat train(vector<Mat> faces) {
     cout<<"Training"<<endl;
@@ -46,6 +47,7 @@ Mat train(vector<Mat> faces) {
     {
         diff_faces.row(j) = flat_images.row(j)-mean_face;
     }
+    cout<<"Mean face size = "<<mean_face.size()<<endl;
 //    cout<<diff_faces<<endl;
     
     //  Now compute the covariance matrix
@@ -64,7 +66,7 @@ Mat train(vector<Mat> faces) {
     {
         eigenfaces.row(i) = eigenfaces.row(i)/norm(eigenfaces.row(i));
     }
-    cout<<eigenfaces<<endl;
+//    cout<<eigenfaces<<endl;
     
 //    Mat temp2;
 //    Mat temp3;
@@ -77,19 +79,103 @@ Mat train(vector<Mat> faces) {
 //    imshow( "mean_face", temp3 );                   // Show our image inside it.
 //    waitKey(0);
     
+    
+    
     //  Now project the image onto the eigenface matrix
-    Mat coeff = Mat::zeros(faces.size(), faces.size(), CV_64FC1);
+    cout <<"eigenfaces"<< eigenfaces.size()<<endl;
+    coeff = Mat::zeros(faces.size(), faces.size(), CV_64FC1);
     for(int i = 0; i<faces.size();i++)
     {
-        for(int j = 0; j<faces.size(); j++)
+        for(int j = 0; j<eigenfaces.cols; j++)
         {
-            coeff.at<double>(i, j) = diff_faces.col(i).dot(eigenfaces.row(j).t());
+            double sum = 0;
+            for(int k=0; k<num_eig;k++)
+            {
+                sum += (diff_faces.at<double>(i,j)*eigenfaces.at<double>(k, j));
+                //diff_faces.row(i).dot(eigenfaces.col(j).t())
+            }
+            coeff.at<double>(i, j) = sum;
         }
 //        cout<<coeff.row(i)<<endl;
     }
-    return eigenfaces;
+//    coeff = diff_faces.dot(eigenfaces.t());
+//    cout<<coeff<<endl;
+
+//    coeff = diff_faces*eigenfaces;
+    cout << coeff.size() << endl;
+//    cout << coeff << endl;
+    return coeff;
 }
 
-int test(Mat &candidate, Mat &eigen_faces){
-    return 0;
+int test(Mat candidate){
+    cout<<"Now testing"<<endl;
+    Mat flat_candidate = Mat::zeros(1, candidate.rows*candidate.cols, CV_64FC1);
+    cout<<flat_candidate.size()<<endl;
+    candidate.convertTo(flat_candidate, CV_64FC1);
+    cout <<"TEST"<<endl;
+//    candidate.copyTo(flat_candidate);
+//    flat_candidate = (flat_candidate.reshape(1, 1)); //Flatten the input candidate image
+    cout<<"eigenfaces size"<<eigenfaces.size()<<endl;
+    
+    flat_candidate = flat_candidate - mean_face;
+    
+    Mat temp;
+    flat_candidate.convertTo(temp, CV_8UC1);
+    flat_candidate = flat_candidate.reshape(1, 100);
+    namedWindow("Display diff face", WINDOW_AUTOSIZE);   // Create a window for display.
+    imshow("Display diff face", temp);
+    cv::waitKey(0);
+    cout<<"Fc = "<<flat_candidate<<endl;
+    cout << "fc size = " << flat_candidate.size() << endl;
+    
+
+    
+    //Now Project
+    Mat test_coefs = Mat::zeros(eigenfaces.cols,1, CV_64FC1);
+//    cout << "eigen_faces type = " << eigenfaces.type() << endl;
+//    cout << "fc type = " << flat_candidate.type() << endl;
+//    cout<<"ef:"<<eigenfaces<<endl;
+    for (int i = 0; i < eigenfaces.cols; i++) {
+        double sum = 0;
+        for(int k=0; k<flat_candidate.cols;k++)
+        {
+//            cout<<"operand1 : "<<flat_candidate.at<double>(1,k)<< "Operand2 =" << eigenfaces.at<double>(k, i)<<endl;
+            sum += (flat_candidate.at<double>(1,k))*(eigenfaces.at<double>(k, i));
+        }
+        test_coefs.at<double>(i,1) = sum;
+        cout<<sum<<endl;
+//        test_coefs.at<double>(i,1) = flat_candidate.dot(eigenfaces.col(i).t());
+    }
+//    cout<<test_coef
+    
+//    Mat test_coefs = flat_candidate.dot(eigenfaces);
+    
+    //test_coefs is indexed as face,eigen_face
+    cout << "coefs size = " << coeff.size() << endl;
+    cout << "test_coefs size = " << test_coefs.size() << endl;
+    cout<<"test_coefs"<<test_coefs<<endl;
+    
+    int min = INT_MAX;
+    int min_id = -1;
+    for (int i = 0; i < coeff.cols; i++) {
+        Mat temp4 = coeff.col(i);
+        if (norm(temp4, test_coefs, NORM_L2) < min) {
+            min = norm(temp4, test_coefs, NORM_L2);
+            min_id = i;
+        }
+    }
+    if (min_id == -1) {
+        std::cout << "Error" << std::endl;
+    }
+    
+    /*Mat result;
+     eigen_faces.col(min_id).copyTo(result);
+     Mat check = test_coefs.t()*eigen_faces.t();
+     cout << "check size = " << check.size() << endl;
+     check = check.t();
+     check = check.reshape(1, 100);
+     cout << "check size = " << check.size() << endl;
+     check.convertTo(result,CV_8UC1);*/
+    return min_id;
+
 }

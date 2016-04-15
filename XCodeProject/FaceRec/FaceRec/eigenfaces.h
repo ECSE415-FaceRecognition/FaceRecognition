@@ -12,6 +12,6 @@ using namespace cv;
 //Mat coeffs;
 
 Mat train(vector<Mat> faces);
-Mat test(Mat candidate);
+int test(Mat candidate);
 
 #endif

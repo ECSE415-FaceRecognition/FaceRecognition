@@ -125,7 +125,7 @@ int main()
 	}
 	Mat eigen = train(faces);
 	/* testing */
-	int test_person = 2;
+	int test_person = 1;
 
 	std::string name = get_image_qmul(people[test_person], 60, 0);
 	std::cout << "testing: " << name << std::endl;
@@ -133,16 +133,16 @@ int main()
 	cv::Mat im = cv::imread(name);
 
 	//convert to greyScale
-//	cv::cvtColor(im, im, CV_RGB2GRAY);
-//	imshow("test_im", im);
-//	waitKey(1);
-//	int result = test(im, eigen);
-//	cout << "index = " << result << endl;
+	cv::cvtColor(im, im, CV_RGB2GRAY);
+	imshow("test_im", im);
+	waitKey(0);
+	int result = test(im);
+	cout << "index = " << result << endl;
 	
-	//result.convertTo(result, CV_8UC1);
+//	result.convertTo(result, CV_8UC1);
 	//cout << "size of final face = " << result.size() << endl;
-//	imshow("actual", faces[result]);
-	waitKey(1);
+	imshow("actual", faces[result]);
+	waitKey(0);
 
 	faces.clear();
 
