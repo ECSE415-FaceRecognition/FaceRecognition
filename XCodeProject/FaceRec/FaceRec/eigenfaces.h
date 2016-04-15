@@ -13,6 +13,5 @@ using namespace cv;
 
 Mat train(vector<Mat> faces);
 Mat test(Mat candidate);
-Mat get_mean_image(vector<Mat> faces);
 
 #endif

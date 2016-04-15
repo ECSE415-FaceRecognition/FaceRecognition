@@ -4,6 +4,7 @@
 #include <string>
 #include <sstream>
 
+
 #include <opencv2/opencv.hpp>
 
 #include "eigenfaces.h"
@@ -53,19 +54,36 @@ std::vector<std::string> open_all_poses() {
 	return names;
 }
 
+vector<vector<string> > open_all_qmul_by_person(vector<string> people) {
+	vector<vector<string> > names;
+	for (int person = 0; person<people.size(); person++) {
+		vector<string> tmp;
+		for (int tilt = 60; tilt <= 120; tilt += 10) {
+			for (int pose = 0; pose <= 180; pose += 10) {
+				tmp.push_back(get_image_qmul(people[person], tilt, pose));
+			}
+		}
+		names.push_back(tmp);
+	}
+	cout << "size of names = " << names.size() << endl;
+	cout << "size of namesnames = " << names[0].size() << endl;
+	return names;
+}
+
+
 int main()
 {
 	//load image and set directory - just for testing
 
 	std::vector<std::string> poses = open_all_poses();
 
-	for (int i = 0; i < 100; i++) {
+	/*for (int i = 0; i < 100; i++) {
 		int index = rand() % poses.size();
 		cv::Mat im = cv::imread(poses[index]);
 		if (im.empty()) {
 			std::cout << "error at: " << poses[index] << std::endl;
 		}
-	}
+	}*/
 	//imshow(pose_name , img);
 	//cv::waitKey();
 	tinydir_dir dir;
@@ -89,42 +107,45 @@ int main()
 
 	tinydir_close(&dir);
 
+	vector<vector<string>> images = open_all_qmul_by_person(people);
+
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 10; i++) {
-		
-		std::string name = get_image_qmul(people[i], 120, 90);
-//		std::string name2 = get_image_qmul(people[i], 110, 90);
-		// open image
-		cv::Mat im = cv::imread(name);
-//		cv::Mat im2 = cv::imread(name2);
-//        cout <<im.size()<<endl;
-		//convert to greyScale
-		cv::cvtColor(im, im, CV_RGB2GRAY);
-//		cv::cvtColor(im2, im2, CV_RGB2GRAY);
-		faces.push_back(im);
-//		faces.push_back(im2);
-
-//		faces.clear();
-		//histograms.push_back(getSpatialPyramidHistogram(im, 1));
+	for (int i = 0; i < 3; i++) {
+		for (int j = 0; j < images[0].size(); j++) {
+			if (i == 12) {
+				continue;
+			}
+			std::string name = images[i][j];
+			// open image
+			cv::Mat im = cv::imread(name);
+			cv::cvtColor(im, im, CV_RGB2GRAY);
+			faces.push_back(im);
+		}
 	}
-    train(faces);
-
-
+	Mat eigen = train(faces);
 	/* testing */
-	int test_person = 8;
-//    Mat mean_face = get_mean_image(faces);
+	int test_person = 2;
 
-	std::string name = get_image_qmul(people[test_person], 110, 90);
+	std::string name = get_image_qmul(people[test_person], 60, 0);
 	std::cout << "testing: " << name << std::endl;
 	// open image
-	cv::Mat im2 = cv::imread(name);
+	cv::Mat im = cv::imread(name);
 
 	//convert to greyScale
-	cv::cvtColor(im2, im2, CV_RGB2GRAY);
-    
-    test(im2);
+//	cv::cvtColor(im, im, CV_RGB2GRAY);
+//	imshow("test_im", im);
+//	waitKey(1);
+//	int result = test(im, eigen);
+//	cout << "index = " << result << endl;
 	
+	//result.convertTo(result, CV_8UC1);
+	//cout << "size of final face = " << result.size() << endl;
+//	imshow("actual", faces[result]);
+	waitKey(1);
+
+	faces.clear();
+
 	//compute spatial pyramid histogram for number of level
 	//tests.push_back(getSpatialPyramidHistogram(im, 1));
 
