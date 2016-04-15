@@ -20,7 +20,7 @@ void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv:
 void qmul_all_images_of_person(std::string person);
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp);
-double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData test);
+std::string do_lbp_prob_match(std::vector<std::vector<LBPData> > histograms, LBPData test, std::vector<std::string> const& people_tmp);
 
 /* logging */
 std::ofstream lbp_face_log;
@@ -40,6 +40,13 @@ int main()
 
 	std::vector<std::string> people = getQmulNames();
 
+	auto person1 = get_image_qmul("AdamBGrey", 90, 20);
+	cv::Mat guess = cv::imread(person1);
+
+	auto person2 = get_image_qmul("AndreeaVGrey", 60, 0);
+	cv::Mat actual = cv::imread(person2);
+
+	
 	do_lbp_face_recognition(people);
 
     return 0;
@@ -53,34 +60,26 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	std::vector<std::vector<cv::string> > image_names = open_all_qmul_by_person(people_tmp);
 	std::vector<std::vector<LBPData> > folds;
 
-    /* open a file for logging */
+	/* open a file for logging */
 	lbp_face_log.open("lbp_face_log.txt");
 
 
-    /* shrink dataset */
-    image_names.resize(5);
+	/* shrink dataset */
+	image_names.resize(20);
 
 
-    for (auto &image : image_names) {
-        image.resize(60);
-    }
+	for (auto &image : image_names) {
+		image.resize(20);
+	}
 
 	/* get lbp histrograms of all images.
-     * when needed, simply pass a copy to the data 
-     */
+	 * when needed, simply pass a copy to the data
+	 */
 	lbp_train(image_names, histograms, MAX_LEVELS);
 
-    std::vector<LBPData> testing_images;
-    for (auto &person : histograms) {
-        testing_images.push_back(person.back());
-        person.pop_back();
-    }
+	int correct = 0;
+	int total = 0;
 
-    for (auto &test_person : testing_images) {
-        do_lbp_prob_match(histograms, test_person);
-    }
-
-    return;
 
 	/* split into 7 training sets, preserving the order of people */
 	folds.resize(NUM_FOLDS);
@@ -89,6 +88,28 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 		seven_fold_cv(histograms[i], folds);
 	}
 	
+	// build testing images
+	std::vector<std::vector<LBPData>> training;
+	for (int i = 0; i < 6; i++) {
+		training.push_back(folds[i]);
+	}
+
+	std::vector<LBPData> testing_images = folds[6];
+
+	for (auto &test_person : testing_images) {
+		std::string guess = do_lbp_prob_match(histograms, test_person, people_tmp);
+		if (test_person.name.find(guess) != std::string::npos) {
+			correct++;
+		}
+		else {
+			std::cout << "Wrong" << std::endl;
+		}
+		total++;
+	}
+	std::ofstream tmp;
+	tmp.open("out.txt");
+	std::cout << "Guessed " << (correct) << "out of " << (total) << "for " << ((float)(correct)) / ((float)(total)) << std::endl;
+	tmp << "Guessed " << (correct) << "out of " << (total) << "for " << ((float)(correct)) / ((float)(total)) << std::endl;
     /* calculate LBP over levels up to MAX_LEVELS */
 	for (int level = 1; level <= MAX_LEVELS; level++) {
         double average_rate = do_lbp_chisq_match(folds, level, people_tmp);
@@ -116,7 +137,7 @@ void qmul_all_images_of_person(std::string person) {
 
 }
 
-double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData test ) {
+std::string do_lbp_prob_match(std::vector<std::vector<LBPData> > histograms, LBPData test, std::vector<std::string> const& people_tmp) {
 
     int sz = histograms[0].size();
     std::vector<ProbData> gaussians;
@@ -152,7 +173,7 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData
         person.push_back(level);
     }
 
-    std::cout << "size of histogram" << person.size() << std::endl;
+    //std::cout << "size of histogram" << person.size() << std::endl;
 
 //    gaussians.push_back(tmp);
 
@@ -191,12 +212,12 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData
             best_name = gaussians[i].name;
         }
 
-        std::cout << "exponent is " <<  exponent << " for " << gaussians[i].name  <<  std::endl;
+        //std::cout << "exponent is " <<  exponent << " for " << gaussians[i].name  <<  std::endl;
         //std::cout << "result is   " <<  result << " for " << gaussians[i].name  <<  std::endl;
     }
 
-    std::cout << "actual: " << tmp.name << std::endl;
-    std::cout << "guess: " << best_name << std::endl;
+    //std::cout << "actual: " << tmp.name << std::endl;
+    //std::cout << "guess: " << best_name << std::endl;
 
     /*
      * => use same method to get p(s) from testing image
@@ -204,6 +225,14 @@ double do_lbp_prob_match( std::vector<std::vector<LBPData> > histograms, LBPData
      * p(I|s) = p(s|I) / sum(...)
      */
 
+	for (auto &person : people_tmp) {
+		if (best_name.find(person) != std::string::npos) {
+			//std::cout << person << std::endl;
+			return person;
+		}
+	}
+
+	return "Error";
 }
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp) {
@@ -248,4 +277,5 @@ double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, 
 			<< "with a rate of " << rate << std::endl;
 		average_rate += rate;
 	}
+	return 0;
 }

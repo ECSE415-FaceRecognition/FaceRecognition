@@ -20,3 +20,4 @@ struct LBPProbData {
 void lbp_train(std::vector<std::vector<std::string> > const& people, std::vector<std::vector<LBPData> > &histograms, int levels);
 std::string lbp_test(std::vector<cv::Mat> test_person, std::vector<std::string> const& people, std::vector<std::vector<LBPData> > &histograms, int levels);
 std::string lbp_prob_test(LBPProbData test_person, std::vector<std::string> const& people, std::vector<LBPProbData> &gaussians, int levels);
+cv::Mat displayLBP(cv::Mat input);

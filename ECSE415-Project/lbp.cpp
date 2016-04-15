@@ -23,6 +23,20 @@ Mat computeLBP(const Mat input);
 Mat computeImageLBP(const Mat input, int patchNumber);
 vector<Mat> getSpatialPyramidHistogram(const Mat input, int levels);
 
+Mat displayLBP( Mat input){
+	//compute LBP for every pixel in input matrix
+	Mat LBPimage(input.size(), CV_64F);
+
+	for (int x = 1; x < input.cols - 1; x++){
+		for (int y = 1; y < input.rows - 1; y++){
+			//extract surrounding 3x3 matrix for every pixel
+			Mat pixelNeighbors = input(Rect(x - 1, y - 1, 3, 3));
+			LBPimage.at<double>(y, x) = computePixelLBP(pixelNeighbors);
+		}
+	}
+	return LBPimage;
+}
+
 void lbp_train(std::vector<std::vector<std::string> > const& people, std::vector<std::vector<LBPData> > &histograms, int levels) {
 	/* train */
 	for (unsigned int i=0; i < people.size(); i++) {
