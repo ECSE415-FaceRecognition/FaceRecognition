@@ -14,7 +14,7 @@
 #undef max
 
 const char QMUL_DIR[] = "QMUL/";
-const char POSE_DIR[] = "HeadPoseImageDatabase/";
+const char POSE_DIR[] = "HeadPoseImageDatabase/"; 
 
 std::string tilts[] = { "-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90" };
 std::string pans[] = { "-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90" };
@@ -71,7 +71,7 @@ vector<vector<string> > open_all_qmul_by_person(vector<string> people) {
 }
 
 
-void main()
+int main()
 {
 	//load image and set directory - just for testing
 
@@ -111,36 +111,21 @@ void main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < 3; i++) {
 		for (int j = 0; j < images[0].size(); j++) {
 			if (i == 12) {
 				continue;
 			}
 			std::string name = images[i][j];
-			//std::string name2 = images[i][j + 1];
 			// open image
 			cv::Mat im = cv::imread(name);
-			//cv::Mat im2 = cv::imread(name2);
-
-			/*os << "test_" << i << ".ras" << endl;
-			os2 << "test_" << i << "_2.ras" << endl;
-			imshow(os.str(), im);
-			waitKey(1);
-			imshow(os2.str(), im2);
-			waitKey(1);*/
-			//convert to greyScale
 			cv::cvtColor(im, im, CV_RGB2GRAY);
-			//cv::cvtColor(im2, im2, CV_RGB2GRAY);
 			faces.push_back(im);
-			//faces.push_back(im2);
-
-			//train(faces);
-			//histograms.push_back(getSpatialPyramidHistogram(im, 1));
 		}
 	}
 	Mat eigen = train(faces);
 	/* testing */
-	int test_person = 2;
+	int test_person = 1;
 
 	std::string name = get_image_qmul(people[test_person], 60, 0);
 	std::cout << "testing: " << name << std::endl;
@@ -150,14 +135,14 @@ void main()
 	//convert to greyScale
 	cv::cvtColor(im, im, CV_RGB2GRAY);
 	imshow("test_im", im);
-	waitKey(1);
-	int result = test(im, eigen);
+	waitKey(0);
+	int result = test(im);
 	cout << "index = " << result << endl;
 	
-	//result.convertTo(result, CV_8UC1);
+//	result.convertTo(result, CV_8UC1);
 	//cout << "size of final face = " << result.size() << endl;
 	imshow("actual", faces[result]);
-	waitKey(1);
+	waitKey(0);
 
 	faces.clear();
 
