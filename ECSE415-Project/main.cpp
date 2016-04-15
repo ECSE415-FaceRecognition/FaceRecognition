@@ -111,11 +111,9 @@ int main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < 3; i++) {
-		for (int j = 0; j < images[0].size(); j++) {
-			if (i == 12) {
-				continue;
-			}
+	for (int i = 0; i < images.size(); i++) {
+		for (int j = 0; j < 20; j++) {
+			cout << "i = " << i << endl;
 			std::string name = images[i][j];
 			// open image
 			cv::Mat im = cv::imread(name);

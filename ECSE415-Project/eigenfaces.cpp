@@ -40,6 +40,9 @@ Mat train(vector<Mat> faces) {
     {
         mean_face.at<double>(0, i) = mean(flat_images.col(i))[0];
     }
+	Mat mean_face_save = mean_face.reshape(1, 100);
+	mean_face_save.convertTo(mean_face_save, CV_8UC1);
+	imwrite("mean_image.png", mean_face_save);
     
     //  Now compute diff_faces (face[i] - mean)
     Mat diff_faces = Mat::zeros(flat_images.rows, flat_images.cols, CV_64FC1);
@@ -66,6 +69,19 @@ Mat train(vector<Mat> faces) {
     {
         eigenfaces.row(i) = eigenfaces.row(i)/norm(eigenfaces.row(i));
     }
+
+	Mat image_ef;
+	for (int i = 0; i < 10; i++) {
+		stringstream out;
+
+		out << "ef_" << i << ".png";
+		eigenfaces.col(i).copyTo(image_ef);
+		image_ef = image_ef.reshape(0, 100);
+		image_ef.convertTo(image_ef, CV_8UC1);
+		normalize(image_ef, image_ef, 0, 255, NORM_MINMAX, CV_8UC1);
+		//imshow(out.str(), image_ef);
+		imwrite(out.str(), image_ef);
+	}
 //    cout<<eigenfaces<<endl;
     
 //    Mat temp2;
