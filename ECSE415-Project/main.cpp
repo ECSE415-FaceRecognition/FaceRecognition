@@ -10,6 +10,7 @@
 #include "eigenfaces.h"
 #include "tinydir.h"
 
+
 // allow numeric limits to work
 #undef max
 
@@ -18,6 +19,25 @@ const char POSE_DIR[] = "HeadPoseImageDatabase/";
 
 std::string tilts[] = { "-90", "-60", "-30", "-15", "0", "+15", "+30", "+60", "+90" };
 std::string pans[] = { "-90", "-75", "-60", "-45", "-30", "-15", "0", "+15", "+30", "+45", "+60", "+75", "+90" };
+
+
+void eigenface_std(vector<Mat> &faces, Mat &test) {
+
+	vector<int> labels;
+
+	for (int i = 0; i < faces.size(); i++) {
+		labels.push_back(i);
+	}
+
+	Ptr<FaceRecognizer> model = createEigenFaceRecognizer();
+	model->train(faces, labels);
+	// The following line predicts the label of a given
+	// test image:
+	int predictedLabel = model->predict(test);
+	cout << "label predicted = " << predictedLabel << endl;
+}
+
+
 std::string get_image_pose(int id, int serie, int number, std::string tilt, std::string pan) {
 	std::stringstream s, id_ss, number_ss;
 
@@ -111,7 +131,7 @@ int main()
 
 	vector<Mat> faces;
 	/* train */
-	for (int i = 0; i < images.size(); i++) {
+	for (int i = 0; i < 31; i++) {
 		for (int j = 0; j < 20; j++) {
 			cout << "i = " << i << endl;
 			std::string name = images[i][j];
@@ -121,26 +141,51 @@ int main()
 			faces.push_back(im);
 		}
 	}
+
+	//std::string name = get_image_qmul(people[0], 60, 0);
+	//std::cout << "testing: " << name << std::endl;
+	//// open image
+	//cv::Mat im = cv::imread(name);
+	//cv::cvtColor(im, im, CV_RGB2GRAY);
+
+	//eigenface_std(faces, im);
 	Mat eigen = train(faces);
 	/* testing */
-	int test_person = 1;
 
-	std::string name = get_image_qmul(people[test_person], 60, 0);
-	std::cout << "testing: " << name << std::endl;
-	// open image
-	cv::Mat im = cv::imread(name);
+	for (int i = 0; i < 31; i++) {
+		for (int j = 20; j < 23; j++) { //images[0].size()
+			std::string name = images[i][j];
+			// open image
+			cv::Mat im2 = cv::imread(name);
+			cv::cvtColor(im2, im2, CV_RGB2GRAY);
+			imshow("test_im", im2);
+			waitKey(0);
+			int result = test(im2);
 
-	//convert to greyScale
-	cv::cvtColor(im, im, CV_RGB2GRAY);
-	imshow("test_im", im);
-	waitKey(0);
-	int result = test(im);
-	cout << "index = " << result << endl;
+			imwrite("actual.png", faces[result]);
+			//waitKey(0);
+			//            faces.push_back(im);
+		}
+	}
+
+	//int test_person = 1;
+
+	//std::string name = get_image_qmul(people[0], 60, 0);
+	//std::cout << "testing: " << name << std::endl;
+	//// open image
+	//cv::Mat im = cv::imread(name);
+
+	////convert to greyScale
+	//cv::cvtColor(im, im, CV_RGB2GRAY);
+	//imshow("test_im", im);
+	//waitKey(0);
+	//int result = test(im);
+	//cout << "index = " << result << endl;
 	
 //	result.convertTo(result, CV_8UC1);
 	//cout << "size of final face = " << result.size() << endl;
-	imshow("actual", faces[result]);
-	waitKey(0);
+	/*imshow("actual", faces[result]);
+	waitKey(0);*/
 
 	faces.clear();
 
