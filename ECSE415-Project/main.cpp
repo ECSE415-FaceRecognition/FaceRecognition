@@ -15,22 +15,24 @@
 // allow numeric limits to work
 #undef max
 
+// data used for probability comparisons
+struct ProbData {
+	cv::Mat mean;
+	cv::Mat covar;
+	std::string name;
+};
+
 void do_lbp_face_recognition(std::vector<std::string> const& people);
 void seven_fold_cv(std::vector<std::string> &people, std::vector<std::vector<cv::string> > &folds);
 void qmul_all_images_of_person(std::string person);
 
 double do_lbp_chisq_match( std::vector<std::vector<LBPData> > folds, int level, std::vector<std::string> const& people_tmp);
-std::string do_lbp_prob_match(std::vector<std::vector<LBPData> > histograms, LBPData test, std::vector<std::string> const& people_tmp);
+std::string do_lbp_prob_match(std::vector<ProbData> gaussians, LBPData test, std::vector<std::string> const& people_tmp);
 
 /* logging */
 std::ofstream lbp_face_log;
 
-// data used for probability comparisons
-struct ProbData {
-    cv::Mat mean;
-    cv::Mat covar;
-    std::string name;
-};
+
 
 int main()
 {
@@ -40,17 +42,18 @@ int main()
 
 	std::vector<std::string> people = getQmulNames();
 
-	auto person1 = get_image_qmul("AdamBGrey", 90, 20);
-	cv::Mat guess = cv::imread(person1);
+	//auto person1 = get_image_qmul("AdamBGrey", 90, 20);
+	//cv::Mat guess = cv::imread(person1);
 
-	auto person2 = get_image_qmul("AndreeaVGrey", 60, 0);
-	cv::Mat actual = cv::imread(person2);
+	//auto person2 = get_image_qmul("AndreeaVGrey", 60, 0);
+	//cv::Mat actual = cv::imread(person2);
 
 	
 	do_lbp_face_recognition(people);
 
     return 0;
 }
+std::ofstream OUTPUT_FILE;
 
 void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
@@ -69,7 +72,7 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 
 
 	for (auto &image : image_names) {
-		image.resize(20);
+		image.resize(14);
 	}
 
 	/* get lbp histrograms of all images.
@@ -81,35 +84,73 @@ void do_lbp_face_recognition(std::vector<std::string> const& people_tmp) {
 	int total = 0;
 
 
-	/* split into 7 training sets, preserving the order of people */
-	folds.resize(NUM_FOLDS);
-	for (int i = 0; i < histograms.size(); i++) {
-		srand(0xDEADBEEF);	// make test deterministic
-		seven_fold_cv(histograms[i], folds);
-	}
-	
-	// build testing images
-	std::vector<std::vector<LBPData>> training;
-	for (int i = 0; i < 6; i++) {
-		training.push_back(folds[i]);
-	}
+	///* split into 7 training sets, preserving the order of people */
+	//folds.resize(NUM_FOLDS);
+	//for (int i = 0; i < histograms.size(); i++) {
+	//	srand(0xDEADBEEF);	// make test deterministic
+	//	seven_fold_cv(histograms[i], folds);
+	//}
+	//
+	//// build testing images
+	//std::vector<std::vector<LBPData>> training;
+	//for (int i = 0; i < 6; i++) {
+	//	training.push_back(folds[i]);
+	//}
 
-	std::vector<LBPData> testing_images = folds[6];
+	std::vector<std::vector<LBPData> > training_images;
+	training_images.resize(histograms.size());
+	std::vector<LBPData> testing_images;
+	for (int i = 0; i < histograms.size(); i++) {
+		for (int j = 0; j < histograms[i].size(); j++) {
+			if (j % 7 == 0) {
+				testing_images.push_back(histograms[i][j]);
+			}
+			else {
+				training_images[i].push_back(histograms[i][j]);
+			}
+		}
+	}
+	OUTPUT_FILE.open("out.txt");
+	int sz = histograms[0].size();
+	std::vector<ProbData> gaussians;
+	std::vector<cv::Mat> all_histogram_of_person;
+
+	/* fill `gaussians with the covar and mean of all images of one person */
+	for (auto &person : training_images) {
+		all_histogram_of_person.clear();
+		/* iterate through all images of a person */
+		for (auto &image : person) {
+			// std::cout << image.name << std::endl;
+			cv::Mat tmp;
+			for (auto &level_hist : image.hist) {
+				tmp.push_back(level_hist);
+			}
+			all_histogram_of_person.push_back(tmp);
+		}
+
+		/* fill ProbData Struct */
+		ProbData tmp;
+		tmp.name = person[0].name;
+		cv::calcCovarMatrix(all_histogram_of_person, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
+
+		/* store covar and mean of this person */
+		gaussians.push_back(tmp);
+	}
 
 	for (auto &test_person : testing_images) {
-		std::string guess = do_lbp_prob_match(histograms, test_person, people_tmp);
+		std::string guess = do_lbp_prob_match(gaussians, test_person, people_tmp);
 		if (test_person.name.find(guess) != std::string::npos) {
 			correct++;
+			std::cout << "Right" << std::endl;
 		}
 		else {
 			std::cout << "Wrong" << std::endl;
 		}
 		total++;
 	}
-	std::ofstream tmp;
-	tmp.open("out.txt");
+
 	std::cout << "Guessed " << (correct) << "out of " << (total) << "for " << ((float)(correct)) / ((float)(total)) << std::endl;
-	tmp << "Guessed " << (correct) << "out of " << (total) << "for " << ((float)(correct)) / ((float)(total)) << std::endl;
+	OUTPUT_FILE << "Guessed " << (correct) << " out of " << (total) << " for " << ((float)(correct)) / ((float)(total)) << std::endl;
     /* calculate LBP over levels up to MAX_LEVELS */
 	for (int level = 1; level <= MAX_LEVELS; level++) {
         double average_rate = do_lbp_chisq_match(folds, level, people_tmp);
@@ -137,32 +178,8 @@ void qmul_all_images_of_person(std::string person) {
 
 }
 
-std::string do_lbp_prob_match(std::vector<std::vector<LBPData> > histograms, LBPData test, std::vector<std::string> const& people_tmp) {
+std::string do_lbp_prob_match(std::vector<ProbData> gaussians, LBPData test, std::vector<std::string> const& people_tmp) {
 
-    int sz = histograms[0].size();
-    std::vector<ProbData> gaussians;
-    std::vector<cv::Mat> all_histogram_of_person;
-    /* fill `gaussians with the covar and mean of all images of one person */
-    for (auto &person : histograms) {
-        all_histogram_of_person.clear();
-        /* iterate through all images of a person */
-        for (auto &image : person) {
-            // std::cout << image.name << std::endl;
-            cv::Mat tmp;
-            for (auto &level_hist : image.hist) {
-                tmp.push_back(level_hist);
-            }
-            all_histogram_of_person.push_back(tmp);
-        }
-
-        /* fill ProbData Struct */
-        ProbData tmp;
-        tmp.name = person[0].name;
-        cv::calcCovarMatrix(all_histogram_of_person, tmp.covar, tmp.mean, CV_COVAR_NORMAL, 5);
-
-        /* store covar and mean of this person */
-        gaussians.push_back(tmp);
-    }
 
     std::vector<cv::Mat> test_vector;
     ProbData tmp;
@@ -227,6 +244,8 @@ std::string do_lbp_prob_match(std::vector<std::vector<LBPData> > histograms, LBP
 
 	for (auto &person : people_tmp) {
 		if (best_name.find(person) != std::string::npos) {
+			std::cout << "Matched: " << test.name << " (test) to " << best_name  << " (guess)" << std::endl;
+			OUTPUT_FILE << "Matched: " << test.name << " (test) to " << best_name << " (guess)" << std::endl;
 			//std::cout << person << std::endl;
 			return person;
 		}
